@@ -40,4 +40,26 @@ class AppStrings {
   static const String retry = '重试';
   static const String loadFailed = '加载失败';
   static const String everyWeek = '每周';
+
+  // Phase 2 — Import & Export
+  static const String importSchedule = '导入课表';
+  static const String exportSchedule = '导出课表';
+  static const String importFromEdu = '从教务系统导入';
+  static const String parseSchedule = '抓取课表';
+  static const String selectCourses = '选择课程';
+  static const String batchSave = '批量保存';
+  static const String parsing = '解析中...';
+  static const String parseSuccess = '解析成功';
+  static const String parseFailed = '解析失败';
+  static const String unsupportedPlatform = '当前平台暂不支持此功能';
+
+  // Phase 2 — Schedule Management
+  static const String manageSchedules = '管理课表';
+  static const String newSchedule = '新建课表';
+  static const String renameSchedule = '重命名';
+  static const String scheduleName = '课表名称';
+  static const String defaultSchedule = '默认课表';
+  static const String cannotDeleteDefault = '默认课表不可删除';
+  static const String scheduleSwitched = '已切换课表';
+  static const String importJsonHint = '粘贴 JSON 内容...';
 }

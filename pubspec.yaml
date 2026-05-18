@@ -23,10 +23,12 @@ dependencies:
   uuid: ^4.3.3
 
   # 第二期 课表导入 & 分享
-  # dio: ^5.4.0
-  # retrofit: ^4.0.3
-  # webview_flutter: ^4.8.0
-  # share_plus: ^9.0.0
+  html: ^0.15.4
+  dio: ^5.4.0
+  retrofit: ^4.0.3
+  webview_flutter: ^4.8.0
+  share_plus: ^9.0.0
+  file_picker: ^8.0.0
 
   # 第三期 通知 & 设置
   # flutter_local_notifications: ^17.0.0
@@ -37,11 +39,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.4.9
-  riverpod_generator: ^2.6.4
+  riverpod_generator: ^2.4.0
   drift_dev: ^2.14.1
   json_serializable: ^6.8.0
   freezed: ^2.5.2
-  # retrofit_generator: ^8.0.0  # 第二期启用
+  # retrofit_generator: ^8.0.0  # 第二期按需启用（当前 SDK 兼容性问题）
 
 flutter:
   uses-material-design: true

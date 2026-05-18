@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
 import 'presentation/pages/add_edit_course_page.dart';
+import 'presentation/pages/import_schedule_page.dart';
 import 'presentation/pages/semester_settings_page.dart';
 import 'presentation/pages/week_schedule_page.dart';
 
@@ -24,6 +25,10 @@ final _router = GoRouter(
         final id = state.pathParameters['id']!;
         return AddEditCoursePage(courseId: id);
       },
+    ),
+    GoRoute(
+      path: '/import',
+      builder: (context, state) => const ImportSchedulePage(),
     ),
     GoRoute(
       path: '/settings/semester',

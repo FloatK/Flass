@@ -12,12 +12,17 @@ class CourseRepositoryImpl implements CourseRepository {
   CourseRepositoryImpl(this._db);
 
   @override
-  Stream<List<Course>> watchAllCourses() {
-    return _db.watchAllCourses().map(_mapToCourses);
+  Stream<List<Course>> watchAllCourses({String? scheduleId}) {
+    return _db.watchAllCourses().map((rows) {
+      if (scheduleId != null) {
+        rows = rows.where((r) => r.course.scheduleId == scheduleId).toList();
+      }
+      return _mapToCourses(rows);
+    });
   }
 
   @override
-  Future<void> addCourse(Course course) async {
+  Future<void> addCourse(Course course, {String? scheduleId}) async {
     try {
       await _db.insertCourseWithDetails(
         course.id,
@@ -26,6 +31,7 @@ class CourseRepositoryImpl implements CourseRepository {
         course.location,
         course.color,
         _timeDetailsToCompanions(course.timeDetails),
+        scheduleId: scheduleId,
       );
     } catch (e) {
       throw CourseRepositoryException('添加课程失败: $e');

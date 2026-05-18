@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/date_utils.dart' as custom;
+import '../../core/utils/export_utils.dart';
 import '../../data/models/course.dart';
+import '../../data/models/schedule.dart';
 import '../providers/course_provider.dart';
+import '../providers/schedule_provider.dart';
 import '../providers/semester_provider.dart';
 
 class WeekSchedulePage extends ConsumerStatefulWidget {
@@ -38,6 +43,8 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     final courseListAsync = ref.watch(courseListProvider);
     final semesterAsync = ref.watch(activeSemesterProvider);
     final currentWeek = ref.watch(currentWeekProvider);
+    ref.watch(scheduleListProvider);
+    ref.watch(currentScheduleProvider);
 
     final semester = semesterAsync.valueOrNull;
     final totalWeeks = semester?.totalWeeks ?? 16;
@@ -87,7 +94,16 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(buildTitle()),
+        title: GestureDetector(
+          onTap: _showScheduleSwitcher,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(buildTitle(), overflow: TextOverflow.ellipsis)),
+              const Icon(Icons.arrow_drop_down, size: 20),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
@@ -100,6 +116,59 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
             onPressed: (currentWeek + _weekOffset) < totalWeeks
                 ? () => setState(() => _weekOffset++)
                 : null,
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'import':
+                  context.push('/import');
+                case 'export':
+                  _exportCourses();
+                case 'import_json':
+                  _importJson();
+                case 'settings':
+                  context.push('/settings/semester');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'import',
+                child: ListTile(
+                  leading: Icon(Icons.school),
+                  title: Text(AppStrings.importFromEdu),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: ListTile(
+                  leading: Icon(Icons.file_upload_outlined),
+                  title: Text(AppStrings.exportSchedule),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'import_json',
+                child: ListTile(
+                  leading: Icon(Icons.file_download_outlined),
+                  title: Text('导入 JSON'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text(AppStrings.semesterSettings),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -532,6 +601,262 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
                   .deleteCourse(course.id);
             },
             child: const Text(AppStrings.confirm),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---- Schedule switcher ----
+
+  void _showScheduleSwitcher() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final schedulesAsync = ref.watch(scheduleListProvider);
+          return schedulesAsync.when(
+          data: (schedules) {
+            final currentAsync = ref.watch(currentScheduleProvider);
+            final currentId = currentAsync.valueOrNull?.id;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    '切换课表',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                ...schedules.map((s) => ListTile(
+                      leading: Icon(
+                        s.isDefault ? Icons.star : Icons.calendar_today,
+                        color: s.id == currentId ? Theme.of(context).colorScheme.primary : null,
+                      ),
+                      title: Text(s.name),
+                      trailing: s.id == currentId ? const Icon(Icons.check, size: 20) : null,
+                      onTap: () {
+                        ref.read(currentScheduleProvider.notifier).switchSchedule(s);
+                        Navigator.pop(ctx);
+                      },
+                    )),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('管理课表'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showManageSchedulesDialog();
+                  },
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('${AppStrings.loadFailed}: $e')),
+        );
+      },
+    ),
+    );
+  }
+
+  void _showManageSchedulesDialog() {
+    final schedulesAsync = ref.read(scheduleListProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return schedulesAsync.when(
+          data: (schedules) {
+            return AlertDialog(
+              title: const Text('管理课表'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...schedules.map((s) => ListTile(
+                          title: Text(s.name),
+                          subtitle: s.isDefault ? const Text('默认') : null,
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (action) {
+                              Navigator.pop(ctx);
+                              if (action == 'rename') {
+                                _showRenameDialog(s);
+                              } else if (action == 'delete') {
+                                _confirmDeleteSchedule(s);
+                              } else if (action == 'setDefault') {
+                                ref.read(scheduleRepositoryProvider).setDefaultSchedule(s.id);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'rename', child: Text('重命名')),
+                              if (!s.isDefault)
+                                const PopupMenuItem(value: 'setDefault', child: Text('设为默认')),
+                              if (!s.isDefault)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('删除', style: TextStyle(color: Colors.red)),
+                                ),
+                            ],
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showCreateScheduleDialog();
+                  },
+                  child: const Text('新建课表'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('关闭'),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('$e')),
+        );
+      },
+    );
+  }
+
+  void _showCreateScheduleDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('新建课表'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: '课表名称'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) return;
+              await ref.read(scheduleRepositoryProvider).createSchedule(
+                    Schedule(
+                      id: const Uuid().v4(),
+                      name: controller.text.trim(),
+                      createdAt: DateTime.now(),
+                    ),
+                  );
+              ref.invalidate(scheduleListProvider);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRenameDialog(Schedule schedule) {
+    final controller = TextEditingController(text: schedule.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('重命名课表'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: '新名称'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) return;
+              await ref.read(scheduleRepositoryProvider).renameSchedule(
+                    schedule.id,
+                    controller.text.trim(),
+                  );
+              ref.invalidate(scheduleListProvider);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteSchedule(Schedule schedule) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除「${schedule.name}」吗？\n该课表下的课程将变为未分类。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () async {
+              await ref.read(scheduleRepositoryProvider).deleteSchedule(schedule.id);
+              ref.invalidate(scheduleListProvider);
+              ref.invalidate(currentScheduleProvider);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _exportCourses() {
+    final courses = ref.read(courseListProvider).valueOrNull;
+    if (courses == null || courses.isEmpty) return;
+    final json = ExportUtils.exportToJson(courses);
+    Clipboard.setData(ClipboardData(text: json));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('课表数据已复制到剪贴板')),
+    );
+  }
+
+  void _importJson() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导入 JSON'),
+        content: TextField(
+          controller: controller,
+          maxLines: 8,
+          decoration: const InputDecoration(
+            hintText: '粘贴 JSON 内容...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isEmpty || !ExportUtils.isValidScheduleJson(text)) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('无效的 JSON 格式')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              final courses = ExportUtils.importFromJson(text);
+              final notifier = ref.read(courseListProvider.notifier);
+              for (final c in courses) {
+                notifier.addCourse(c);
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('成功导入 ${courses.length} 门课程')),
+              );
+            },
+            child: const Text('导入'),
           ),
         ],
       ),
