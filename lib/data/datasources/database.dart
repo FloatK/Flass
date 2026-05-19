@@ -121,6 +121,17 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<void> deleteCoursesByScheduleId(String scheduleId) async {
+    final ids = await (selectOnly(courses)
+          ..addColumns([courses.id])
+          ..where(courses.scheduleId.equals(scheduleId)))
+        .map((row) => row.read(courses.id))
+        .get();
+    for (final id in ids) {
+      await deleteCourse(id!);
+    }
+  }
+
   Stream<List<CourseWithDetails>> watchAllCourses() {
     final query = select(courses).join([
       leftOuterJoin(timeDetails, timeDetails.courseId.equalsExp(courses.id)),

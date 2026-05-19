@@ -63,6 +63,15 @@ class CourseRepositoryImpl implements CourseRepository {
     }
   }
 
+  @override
+  Future<void> deleteAllByScheduleId(String scheduleId) async {
+    try {
+      await _db.deleteCoursesByScheduleId(scheduleId);
+    } catch (e) {
+      throw CourseRepositoryException('清空课表失败: $e');
+    }
+  }
+
   List<Course> _mapToCourses(List<CourseWithDetails> rows) {
     return rows.map((row) {
       return Course(

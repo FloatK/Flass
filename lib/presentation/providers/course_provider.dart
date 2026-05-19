@@ -39,4 +39,9 @@ class CourseList extends _$CourseList {
     final repo = ref.read(courseRepositoryProvider);
     await repo.deleteCourse(id);
   }
+
+  Future<void> deleteAllByScheduleId(String scheduleId) async {
+    final repo = ref.read(courseRepositoryProvider);
+    await repo.deleteAllByScheduleId(scheduleId);
+  }
 }

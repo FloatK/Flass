@@ -159,9 +159,21 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
+  Widget _buildWeekChip(String label, VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outline),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 13)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,40 +445,22 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
             const SizedBox(height: 12),
 
             // ── Quick week buttons ──
-            Row(
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
               children: [
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    entry.selectedWeeks =
-                        Set<int>.from(List.generate(20, (i) => i + 1));
-                  }),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: const Text(AppStrings.allWeeks),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    entry.selectedWeeks =
-                        Set<int>.from(List.generate(10, (i) => i * 2 + 1));
-                  }),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: const Text(AppStrings.singleWeek),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    entry.selectedWeeks =
-                        Set<int>.from(List.generate(10, (i) => i * 2 + 2));
-                  }),
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: const Text(AppStrings.doubleWeek),
-                ),
+                _buildWeekChip(AppStrings.allWeeks, () => setState(() {
+                      entry.selectedWeeks =
+                          Set<int>.from(List.generate(20, (i) => i + 1));
+                    })),
+                _buildWeekChip(AppStrings.singleWeek, () => setState(() {
+                      entry.selectedWeeks =
+                          Set<int>.from(List.generate(10, (i) => i * 2 + 1));
+                    })),
+                _buildWeekChip(AppStrings.doubleWeek, () => setState(() {
+                      entry.selectedWeeks =
+                          Set<int>.from(List.generate(10, (i) => i * 2 + 2));
+                    })),
               ],
             ),
 
@@ -475,32 +469,45 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
             // ── Week checkboxes (20 weeks) ──
             Wrap(
               spacing: 2,
-              runSpacing: 4,
+              runSpacing: 0,
               children: List.generate(20, (i) {
                 final week = i + 1;
                 final selected = entry.selectedWeeks.contains(week);
-                return SizedBox(
-                  width: 44,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Checkbox(
-                        value: selected,
-                        onChanged: (v) {
-                          setState(() {
-                            if (v == true) {
-                              entry.selectedWeeks.add(week);
-                            } else {
-                              entry.selectedWeeks.remove(week);
-                            }
-                          });
-                        },
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                return InkWell(
+                  onTap: () => setState(() {
+                    if (selected) {
+                      entry.selectedWeeks.remove(week);
+                    } else {
+                      entry.selectedWeeks.add(week);
+                    }
+                  }),
+                  child: Container(
+                    width: 36,
+                    height: 32,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? colorScheme.primaryContainer
+                          : null,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: selected
+                            ? colorScheme.primary
+                            : colorScheme.outlineVariant,
+                        width: 1,
                       ),
-                      Text('$week', style: textTheme.bodySmall),
-                    ],
+                    ),
+                    child: Text(
+                      '$week',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: selected ? FontWeight.w600 : null,
+                        color: selected
+                            ? colorScheme.onPrimaryContainer
+                            : null,
+                      ),
+                    ),
                   ),
                 );
               }),

@@ -21,7 +21,7 @@ final courseRepositoryProvider = Provider<CourseRepository>.internal(
 );
 
 typedef CourseRepositoryRef = ProviderRef<CourseRepository>;
-String _$courseListHash() => r'70e55883b16f202a12b9e8cbe76862b9bb1568be';
+String _$courseListHash() => r'2463badb2c5043c687ec74d0f91b4ff3de5a6ca8';
 
 /// See also [CourseList].
 @ProviderFor(CourseList)

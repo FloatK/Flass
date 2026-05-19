@@ -6,8 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
-import '../../core/utils/date_utils.dart' as custom;
 import '../../core/utils/export_utils.dart';
+import '../../data/datasources/database.dart' hide Course, TimeDetail, Schedule;
 import '../../data/models/course.dart';
 import '../../data/models/schedule.dart';
 import '../providers/course_provider.dart';
@@ -52,13 +52,18 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
 
     String buildTitle() {
       if (semester == null) return AppStrings.appTitle;
-      final semesterStart = DateTime.parse(semester.startDate);
-      final weekStart =
-          semesterStart.add(Duration(days: (displayedWeek - 1) * 7));
-      final weekEnd = weekStart.add(const Duration(days: 6));
-      final dateRange = custom.DateUtils.formatDateRange(weekStart, weekEnd);
-      return '${semester.name} ${AppStrings.weekLabel}$displayedWeek${AppStrings.weekSuffix} ($dateRange)';
+      return '${AppStrings.weekLabel}$displayedWeek${AppStrings.weekSuffix}';
     }
+
+    String buildDateLabel() {
+      if (semester == null) return '';
+      final start = DateTime.parse(semester.startDate);
+      final mon = start.add(Duration(days: (displayedWeek - 1) * 7));
+      final sun = mon.add(const Duration(days: 6));
+      return '${mon.month}月${mon.day}日-${sun.month}月${sun.day}日';
+    }
+
+    final isCurrentWeek = displayedWeek == currentWeek;
 
     Widget buildBody() {
       return semesterAsync.when(
@@ -85,7 +90,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
                   ),
                 );
               }
-              return _buildScheduleGrid(courses, displayedWeek);
+              return _buildScheduleGrid(courses, displayedWeek, semester);
             },
           );
         },
@@ -94,17 +99,59 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: semester != null
+            ? Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    buildDateLabel(),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
+            : null,
         title: GestureDetector(
           onTap: _showScheduleSwitcher,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(child: Text(buildTitle(), overflow: TextOverflow.ellipsis)),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      buildTitle(),
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    if (semester != null && !isCurrentWeek)
+                      Text(
+                        '(非本周)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               const Icon(Icons.arrow_drop_down, size: 20),
             ],
           ),
         ),
         actions: [
+          if (!isCurrentWeek)
+            IconButton(
+              icon: const Icon(Icons.radio_button_checked, size: 20),
+              tooltip: '回到本周',
+              onPressed: () => setState(() => _weekOffset = 0),
+            ),
           IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: (currentWeek + _weekOffset) > 1
@@ -223,45 +270,111 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   // Schedule grid
   // ---------------------------------------------------------------------------
 
-  Widget _buildScheduleGrid(List<Course> courses, int displayedWeek) {
-    return Column(
-      children: [
-        _buildHeaderRow(),
-        Expanded(
-          child: SingleChildScrollView(
-            child: _buildGridBody(courses, displayedWeek),
+  Widget _buildScheduleGrid(List<Course> courses, int displayedWeek, SemesterConfigData semester) {
+    final semesterStart = DateTime.parse(semester.startDate);
+    final weekStart = semesterStart.add(Duration(days: (displayedWeek - 1) * 7));
+    final totalWeeks = semester.totalWeeks;
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
+        if (details.primaryVelocity! < -100 && displayedWeek < totalWeeks) {
+          setState(() => _weekOffset++);
+        } else if (details.primaryVelocity! > 100 && displayedWeek > 1) {
+          setState(() => _weekOffset--);
+        }
+      },
+      child: Column(
+        children: [
+          _buildCombinedHeader(weekStart, todayStart),
+          Expanded(
+            child: SingleChildScrollView(
+              child: _buildGridBody(courses, displayedWeek),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildHeaderRow() {
-    return Row(
-      children: [
-        const SizedBox(width: _periodLabelWidth),
-        ...List.generate(
-          7,
-          (index) => Expanded(
+  Widget _buildCombinedHeader(DateTime weekStart, DateTime todayStart) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: _gridBorderColor, width: 1),
+          bottom: BorderSide(color: _gridBorderColor, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
             child: Container(
-              height: 40,
+              height: 56,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: _gridBorderColor, width: 1),
-                ),
-              ),
               child: Text(
-                _dayLabels[index],
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                '${weekStart.month}月',
+                style: TextStyle(
                   fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
           ),
-        ),
-      ],
+          ...List.generate(7, (i) {
+            final date = weekStart.add(Duration(days: i));
+            final day = date.day;
+            final isToday =
+                DateTime(date.year, date.month, date.day) == todayStart;
+            return Expanded(
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: _gridBorderColor, width: 1),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: isToday
+                          ? BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                            )
+                          : null,
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              isToday ? FontWeight.bold : FontWeight.normal,
+                          color: isToday ? Colors.white : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _dayLabels[i],
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,7 +13,9 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../data/datasources/edu_parser.dart';
 import '../../data/datasources/edu_parser_qz.dart';
+import '../../data/models/schedule.dart';
 import '../providers/course_provider.dart';
+import '../providers/schedule_provider.dart';
 
 const _urlStoreFile = 'edu_url.json';
 
@@ -25,14 +28,20 @@ class ImportSchedulePage extends ConsumerStatefulWidget {
 }
 
 class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
+  static const _eduSystems = [
+    _EduSystemInfo(name: '强智教务系统', parser: QiangZhiEduParser()),
+    // _EduSystemInfo(name: '正方教务系统', parser: null),  // 待实现
+  ];
+
   WebViewController? _controller;
   final _urlController = TextEditingController();
   final _pasteController = TextEditingController();
   bool _isLoading = true;
   bool _isParsing = false;
+  int _selectedEduIndex = 0;
   List<ParsedCourse> _parsedCourses = [];
   final Set<int> _selectedIndices = {};
-  final EduParser _parser = const QiangZhiEduParser();
+  String _htmlForDebug = '';
 
   bool get _isWebViewSupported =>
       Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
@@ -40,6 +49,9 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
   @override
   void initState() {
     super.initState();
+    _loadSavedData().then((_) {
+      if (mounted) _showEduSystemDialog();
+    });
     if (_isWebViewSupported) {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -66,10 +78,10 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
           },
         ));
     }
-    _loadSavedUrl();
+    _loadSavedData();
   }
 
-  Future<void> _loadSavedUrl() async {
+  Future<void> _loadSavedData() async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$_urlStoreFile');
     if (await file.exists()) {
@@ -80,15 +92,30 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
         if (url != null && url.isNotEmpty) {
           _urlController.text = url;
         }
+        final idx = data['eduIndex'] as int?;
+        if (idx != null && idx >= 0 && idx < _eduSystems.length) {
+          _selectedEduIndex = idx;
+        }
       } catch (_) {}
     }
   }
 
-  Future<void> _saveUrl(String url) async {
+  Future<void> _saveData() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$_urlStoreFile');
-      await file.writeAsString(jsonEncode({'url': url}));
+      await file.writeAsString(jsonEncode({
+        'url': _urlController.text.trim(),
+        'eduIndex': _selectedEduIndex,
+      }));
+    } catch (_) {}
+  }
+
+  Future<void> _saveDebugHtml(String html) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/debug_edu.html');
+      await file.writeAsString(html);
     } catch (_) {}
   }
 
@@ -112,7 +139,7 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
       return;
     }
     _controller!.loadRequest(uri);
-    _saveUrl(text);
+    _saveData();
     FocusScope.of(context).unfocus();
   }
 
@@ -124,17 +151,49 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     });
 
     try {
-      String html;
+      String html = '';
       if (pastedHtml != null) {
         html = pastedHtml;
       } else {
-        final result = await _controller!.runJavaScriptReturningResult(
-          'document.documentElement.outerHTML',
+        // Ensure the schedule table is loaded before extracting HTML.
+        const int maxAttempts = 15;
+        const Duration interval = Duration(milliseconds: 600);
+        bool tableReady = false;
+        for (int i = 0; i < maxAttempts && !tableReady; i++) {
+          // Check both possible iframe IDs (Frame1 holds the schedule list).
+          final hasTable = await _controller!.runJavaScriptReturningResult(
+            '(function(){var f1=document.getElementById("Frame1");if(f1&&f1.contentDocument&&f1.contentDocument.querySelector("#kbtable"))return true;var f0=document.getElementById("Frame0");if(f0&&f0.contentDocument&&f0.contentDocument.querySelector("#kbtable"))return true;return document.querySelector("#kbtable")!=null;})()',
+          );
+          if (hasTable == true) {
+            tableReady = true;
+            break;
+          }
+          await Future.delayed(interval);
+        }
+        // Retrieve the full HTML. Use Base64 to avoid truncation on Android.
+        final rawResult = await _controller!.runJavaScriptReturningResult(
+          "btoa((function(){var f1=document.getElementById('Frame1');if(f1&&f1.contentDocument)return f1.contentDocument.documentElement.outerHTML;var f0=document.getElementById('Frame0');if(f0&&f0.contentDocument)return f0.contentDocument.documentElement.outerHTML;return document.documentElement.outerHTML;})())",
         );
-        html = (result as String?) ?? '';
+        if (rawResult is String) {
+          try {
+            html = utf8.decode(base64.decode(rawResult));
+          } catch (_) {
+            // Base64 decoding failed – fall back to plain HTML.
+            final plain = await _controller!.runJavaScriptReturningResult(
+              'document.documentElement.outerHTML',
+            );
+            html = (plain as String?) ?? '';
+          }
+        } else {
+          final plain = await _controller!.runJavaScriptReturningResult(
+            'document.documentElement.outerHTML',
+          );
+          html = (plain as String?) ?? '';
+        }
       }
 
-      final courses = _parser.parse(html);
+      final parser = _eduSystems[_selectedEduIndex].parser!;
+      final courses = parser.parse(html);
 
       if (!mounted) return;
       setState(() {
@@ -143,11 +202,28 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
       });
 
       if (courses.isEmpty && mounted) {
+        _htmlForDebug = html;
+        _saveDebugHtml(html);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('未找到课程数据，请确认已登录并进入课表页面')),
+          SnackBar(
+            content: const Text('未找到课程数据'),
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: '复制HTML',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(
+                    text: _htmlForDebug.length > 50000
+                        ? '${_htmlForDebug.substring(0, 50000)}\n\n...[截断，完整文件请取 debug_edu.html]'
+                        : _htmlForDebug));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('HTML 已复制到剪贴板，请粘贴给开发者')),
+                );
+              },
+            ),
+          ),
         );
       } else if (courses.isNotEmpty) {
-        _showParseResults();
+        _showImportModeDialog();
       }
     } catch (e) {
       if (!mounted) return;
@@ -158,7 +234,58 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     }
   }
 
-  void _showParseResults() {
+  void _showImportModeDialog() {
+    final currentSchedule = ref.read(currentScheduleProvider).valueOrNull;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导入方式'),
+        content: Text('解析到 ${_parsedCourses.length} 门课程，请选择导入方式：'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showParseResults(clearExisting: true);
+            },
+            child: Text('覆盖「${currentSchedule?.name ?? '当前课表'}」'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _createAndSwitchSchedule();
+              _showParseResults(clearExisting: false);
+            },
+            child: const Text('保存到新课表'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createAndSwitchSchedule() async {
+    final repo = ref.read(scheduleRepositoryProvider);
+    final uuid = const Uuid();
+    final schedule = Schedule(
+      id: uuid.v4(),
+      name: '${_eduSystems[_selectedEduIndex].name} 导入',
+      createdAt: DateTime.now(),
+    );
+    await repo.createSchedule(schedule);
+    ref.invalidate(scheduleListProvider);
+    ref.read(currentScheduleProvider.notifier).switchSchedule(schedule);
+  }
+
+  void _showParseResults({bool clearExisting = false}) {
+    if (clearExisting) {
+      final currentSchedule =
+          ref.read(currentScheduleProvider).valueOrNull;
+      if (currentSchedule != null) {
+        ref
+            .read(courseListProvider.notifier)
+            .deleteAllByScheduleId(currentSchedule.id);
+      }
+    }
+    _selectedIndices.clear();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -297,7 +424,7 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
               Text('4. 勾选要导入的课程，点击「导入已选」'),
               SizedBox(height: 12),
               Text(
-                '提示：链接会自动保存，下次打开无需重新输入。',
+                '功能完善中',
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
             ],
@@ -307,6 +434,38 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEduSystemDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('选择教务系统'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(_eduSystems.length, (i) {
+            return RadioListTile<int>(
+              value: i,
+              groupValue: _selectedEduIndex,
+              title: Text(_eduSystems[i].name),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedEduIndex = v);
+              },
+            );
+          }),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              _saveData();
+              Navigator.pop(ctx);
+            },
+            child: const Text('确定'),
           ),
         ],
       ),
@@ -479,4 +638,10 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
       ),
     );
   }
+}
+
+class _EduSystemInfo {
+  final String name;
+  final EduParser? parser;
+  const _EduSystemInfo({required this.name, required this.parser});
 }
