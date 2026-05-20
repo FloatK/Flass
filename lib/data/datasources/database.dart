@@ -30,6 +30,8 @@ class Schedules extends Table {
   TextColumn get name => text()();
   BoolColumn get isDefault => boolean()();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get displayedWeekdays => text().nullable()();
+  IntColumn get maxCoursesPerDay => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -48,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +58,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(schedules);
             await m.addColumn(courses, courses.scheduleId);
+          }
+          if (from < 3) {
+            await m.addColumn(schedules, schedules.displayedWeekdays);
+            await m.addColumn(schedules, schedules.maxCoursesPerDay);
           }
         },
       );
@@ -203,6 +209,10 @@ class AppDatabase extends _$AppDatabase {
       await (update(schedules)..where((t) => t.id.equals(id)))
           .write(const SchedulesCompanion(isDefault: Value(true)));
     });
+  }
+
+  Future<void> updateSchedule(String id, SchedulesCompanion values) async {
+    await (update(schedules)..where((t) => t.id.equals(id))).write(values);
   }
 }
 

@@ -12,6 +12,11 @@ _$ScheduleImpl _$$ScheduleImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isDefault: json['isDefault'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      displayedWeekdays: (json['displayedWeekdays'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [1, 2, 3, 4, 5],
+      maxCoursesPerDay: (json['maxCoursesPerDay'] as num?)?.toInt() ?? 12,
     );
 
 Map<String, dynamic> _$$ScheduleImplToJson(_$ScheduleImpl instance) =>
@@ -20,4 +25,6 @@ Map<String, dynamic> _$$ScheduleImplToJson(_$ScheduleImpl instance) =>
       'name': instance.name,
       'isDefault': instance.isDefault,
       'createdAt': instance.createdAt.toIso8601String(),
+      'displayedWeekdays': instance.displayedWeekdays,
+      'maxCoursesPerDay': instance.maxCoursesPerDay,
     };

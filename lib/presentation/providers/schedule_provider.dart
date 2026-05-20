@@ -30,6 +30,12 @@ class CurrentSchedule extends _$CurrentSchedule {
       state = AsyncData(sched);
     }
   }
+
+  Future<void> updateSchedule(Schedule schedule) async {
+    final repo = ref.read(scheduleRepositoryProvider);
+    await repo.updateSchedule(schedule);
+    state = AsyncData(schedule);
+  }
 }
 
 @Riverpod(keepAlive: true)

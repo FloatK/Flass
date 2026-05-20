@@ -32,7 +32,7 @@ dependencies:
 
   # 第三期 通知 & 设置
   # flutter_local_notifications: ^17.0.0
-  # shared_preferences: ^2.3.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

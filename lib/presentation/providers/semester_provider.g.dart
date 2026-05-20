@@ -20,7 +20,7 @@ final databaseProvider = Provider<AppDatabase>.internal(
 );
 
 typedef DatabaseRef = ProviderRef<AppDatabase>;
-String _$currentWeekHash() => r'9bc97ca4029a86b762ef79497ce3ed5bf807b94b';
+String _$currentWeekHash() => r'8cd3d79f1acb35e8b293893127efd32f1221a89e';
 
 /// See also [currentWeek].
 @ProviderFor(currentWeek)

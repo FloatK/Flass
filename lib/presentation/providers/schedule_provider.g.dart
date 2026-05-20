@@ -36,7 +36,7 @@ final scheduleListProvider = FutureProvider<List<Schedule>>.internal(
 );
 
 typedef ScheduleListRef = FutureProviderRef<List<Schedule>>;
-String _$currentScheduleHash() => r'f6b7f5da2b7f09284367ee4980907e7c1ad358f2';
+String _$currentScheduleHash() => r'0869ee9223933306b3b9eb1a83032ef973a6e004';
 
 /// See also [CurrentSchedule].
 @ProviderFor(CurrentSchedule)

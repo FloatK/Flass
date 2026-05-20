@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/config/action_item.dart';
+import '../../core/config/app_bar_config.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/export_utils.dart';
@@ -13,6 +15,7 @@ import '../../data/models/schedule.dart';
 import '../providers/course_provider.dart';
 import '../providers/schedule_provider.dart';
 import '../providers/semester_provider.dart';
+import '../widgets/schedule_popup.dart';
 
 class WeekSchedulePage extends ConsumerStatefulWidget {
   const WeekSchedulePage({super.key});
@@ -23,8 +26,24 @@ class WeekSchedulePage extends ConsumerStatefulWidget {
 
 class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   int _weekOffset = 0;
+  List<ActionItem> _appBarActionItems = [];
 
-  static const int _totalPeriods = 12;
+  @override
+  void initState() {
+    super.initState();
+    _loadAppBarConfig();
+  }
+
+  Future<void> _loadAppBarConfig() async {
+    final items = await AppBarConfig.loadActionItems();
+    if (mounted) {
+      setState(() {
+        _appBarActionItems = items;
+      });
+    }
+  }
+
+  int _periodCount(Schedule? schedule) => schedule?.maxCoursesPerDay ?? 12;
   static const double _periodHeight = 48.0;
   static const double _periodLabelWidth = 40.0;
   static const Color _gridBorderColor = Color(0xFFEEEEEE);
@@ -87,7 +106,10 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
                   ),
                 );
               }
-              return _buildScheduleGrid(courses, displayedWeek, semester);
+              final pCount = _periodCount(
+              ref.read(currentScheduleProvider).valueOrNull);
+          return _buildScheduleGrid(
+              courses, displayedWeek, semester, periodCount: pCount);
             },
           );
         },
@@ -112,106 +134,39 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
                 ),
               )
             : null,
-        title: GestureDetector(
-          onTap: _showScheduleSwitcher,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      buildTitle(),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    if (semester != null && !isCurrentWeek)
-                      Text(
-                        '(非本周)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              buildTitle(),
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            if (semester != null && !isCurrentWeek)
+              Text(
+                '(非本周)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Icon(Icons.arrow_drop_down, size: 20),
-            ],
-          ),
+          ],
         ),
         actions: [
-          if (!isCurrentWeek)
-            IconButton(
-              icon: const Icon(Icons.radio_button_checked, size: 20),
-              tooltip: '回到本周',
-              onPressed: () => setState(() => _weekOffset = 0),
-            ),
+          // Configurable action buttons (max 4)
+          ..._appBarActionItems.take(ActionItem.maxAppBarItems).map(
+                (item) => IconButton(
+                  icon: Icon(item.icon, size: 20),
+                  tooltip: item.displayName,
+                  onPressed: () => _handleAppBarAction(context, item),
+                ),
+              ),
+          // Overflow popup (always rightmost)
           IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: (currentWeek + _weekOffset) > 1
-                ? () => setState(() => _weekOffset--)
-                : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: (currentWeek + _weekOffset) < totalWeeks
-                ? () => setState(() => _weekOffset++)
-                : null,
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'import':
-                  context.push('/import');
-                case 'export':
-                  _exportCourses();
-                case 'import_json':
-                  _importJson();
-                case 'settings':
-                  context.push('/settings/semester');
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'import',
-                child: ListTile(
-                  leading: Icon(Icons.school),
-                  title: Text(AppStrings.importFromEdu),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'export',
-                child: ListTile(
-                  leading: Icon(Icons.file_upload_outlined),
-                  title: Text(AppStrings.exportSchedule),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'import_json',
-                child: ListTile(
-                  leading: Icon(Icons.file_download_outlined),
-                  title: Text('导入 JSON'),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'settings',
-                child: ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text(AppStrings.semesterSettings),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
+            icon: const Icon(Icons.more_vert),
+            tooltip: '更多',
+            onPressed: () => _showSchedulePopup(context),
           ),
         ],
       ),
@@ -266,7 +221,12 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   // Schedule grid
   // ---------------------------------------------------------------------------
 
-  Widget _buildScheduleGrid(List<Course> courses, int displayedWeek, SemesterConfigData semester) {
+  Widget _buildScheduleGrid(
+    List<Course> courses,
+    int displayedWeek,
+    SemesterConfigData semester, {
+    int periodCount = 12,
+  }) {
     final semesterStart = DateTime.parse(semester.startDate);
     final weekStart = semesterStart.add(Duration(days: (displayedWeek - 1) * 7));
     final totalWeeks = semester.totalWeeks;
@@ -287,7 +247,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
           _buildCombinedHeader(weekStart, todayStart),
           Expanded(
             child: SingleChildScrollView(
-              child: _buildGridBody(courses, displayedWeek),
+              child: _buildGridBody(courses, displayedWeek, periodCount: periodCount),
             ),
           ),
         ],
@@ -297,6 +257,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
 
   Widget _buildCombinedHeader(DateTime weekStart, DateTime todayStart) {
     final colorScheme = Theme.of(context).colorScheme;
+    final displayedDays = _getDisplayedWeekdays();
     return Container(
       decoration: BoxDecoration(
         border: Border(
@@ -321,7 +282,8 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
               ),
             ),
           ),
-          ...List.generate(7, (i) {
+          ...displayedDays.map((dayOfWeek) {
+            final i = dayOfWeek - 1;
             final date = weekStart.add(Duration(days: i));
             final day = date.day;
             final isToday =
@@ -375,7 +337,9 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     );
   }
 
-  Widget _buildGridBody(List<Course> courses, int displayedWeek) {
+  Widget _buildGridBody(List<Course> courses, int displayedWeek,
+      {int periodCount = 12}) {
+    final displayedDays = _getDisplayedWeekdays();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,7 +348,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
           width: _periodLabelWidth,
           child: Column(
             children: List.generate(
-              _totalPeriods,
+              periodCount,
               (index) => Container(
                 height: _periodHeight,
                 alignment: Alignment.center,
@@ -401,32 +365,39 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
             ),
           ),
         ),
-        // 7 day columns
-        ...List.generate(
-          7,
-          (dayIndex) => Expanded(
-            child: _buildDayColumn(dayIndex + 1, courses, displayedWeek),
+        // displayed week day columns
+        ...displayedDays.map(
+          (dayOfWeek) => Expanded(
+            child:
+                _buildDayColumn(dayOfWeek, courses, displayedWeek, periodCount: periodCount),
           ),
         ),
       ],
     );
   }
 
+  List<int> _getDisplayedWeekdays() {
+    final schedule = ref.read(currentScheduleProvider).valueOrNull;
+    final weekdays = schedule?.displayedWeekdays ?? [1, 2, 3, 4, 5];
+    return weekdays.where((d) => d >= 1 && d <= 7).toList()..sort();
+  }
+
   Widget _buildDayColumn(
     int dayOfWeek,
     List<Course> courses,
-    int displayedWeek,
-  ) {
+    int displayedWeek, {
+    int periodCount = 12,
+  }) {
     final slots = _getActiveSlotsForDay(dayOfWeek, courses, displayedWeek);
 
     return SizedBox(
-      height: _totalPeriods * _periodHeight,
+      height: periodCount * _periodHeight,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // Grid cell backgrounds
           ...List.generate(
-            _totalPeriods,
+            periodCount,
             (index) => Positioned(
               top: index * _periodHeight,
               left: 0,
@@ -717,7 +688,88 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     );
   }
 
-  // ---- Schedule switcher ----
+  // ---- AppBar action handlers ----
+
+  void _handleAppBarAction(BuildContext context, ActionItem item) {
+    final current = ref.read(currentWeekProvider);
+    final total = _getTotalWeeks();
+    final displayed = (current + _weekOffset).clamp(1, total);
+
+    switch (item) {
+      case ActionItem.importTimetable:
+        context.push('/import');
+      case ActionItem.exportTimetable:
+        _exportCourses();
+      case ActionItem.importJson:
+        _importJson();
+      case ActionItem.previousWeek:
+        if (displayed > 1) setState(() => _weekOffset--);
+      case ActionItem.nextWeek:
+        if (displayed < total) setState(() => _weekOffset++);
+      case ActionItem.goToCurrentWeek:
+        setState(() => _weekOffset = 0);
+      case ActionItem.selectTimetable:
+        context.push('/schedules');
+      case ActionItem.clearCache:
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('清除缓存'),
+            content: const Text('确定要清除缓存吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('缓存已清除（占位）')),
+                  );
+                },
+                child: const Text('确认'),
+              ),
+            ],
+          ),
+        );
+      case ActionItem.about:
+        showAboutDialog(
+          context: context,
+          applicationName: 'WakeUp 课程表',
+          applicationVersion: '0.1.0',
+        );
+    }
+  }
+
+  void _showSchedulePopup(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      pageBuilder: (ctx, _, __) => SchedulePopup(
+        displayedWeek: (ref.read(currentWeekProvider) + _weekOffset)
+            .clamp(1, _getTotalWeeks()),
+        totalWeeks: _getTotalWeeks(),
+        onWeekChanged: (week) {
+          final current = ref.read(currentWeekProvider);
+          setState(() => _weekOffset = week - current);
+        },
+        appBarItems: _appBarActionItems,
+        onConfigChanged: () {
+          _loadAppBarConfig();
+          setState(() {});
+        },
+        onActionItem: (item) => _handleAppBarAction(context, item),
+      ),
+    );
+  }
+
+  int _getTotalWeeks() {
+    return ref.read(activeSemesterProvider).valueOrNull?.totalWeeks ?? 16;
+  }
+
+  // ---- Old schedule switcher (kept for compatibility) ----
 
   void _showScheduleSwitcher() {
     showModalBottomSheet(

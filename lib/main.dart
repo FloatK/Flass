@@ -53,7 +53,7 @@ Future<void> _ensureDefaultSchedule(AppDatabase db) async {
     await db.createSchedule(
       SchedulesCompanion(
         id: const Value('default'),
-        name: const Value('默认课表'),
+        name: const Value('课表1'),
         isDefault: const Value(true),
         createdAt: Value(DateTime.now()),
       ),
