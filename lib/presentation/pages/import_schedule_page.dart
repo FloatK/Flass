@@ -274,47 +274,6 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     }
   }
 
-  void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.help_outline, size: 22),
-            SizedBox(width: 8),
-            Text('使用说明'),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('1. 在上方输入教务系统课表页面的 URL'),
-              SizedBox(height: 8),
-              Text('2. 在下方浏览器中登录教务系统，进入课表页面'),
-              SizedBox(height: 8),
-              Text('3. 点击右上角「抓取课表」解析课程'),
-              SizedBox(height: 8),
-              Text('4. 勾选要导入的课程，点击「导入已选」'),
-              SizedBox(height: 12),
-              Text(
-                '提示：链接会自动保存，下次打开无需重新输入。',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('知道了'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

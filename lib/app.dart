@@ -6,7 +6,6 @@ import 'core/theme/app_theme.dart';
 import 'presentation/pages/add_edit_course_page.dart';
 import 'presentation/pages/import_schedule_page.dart';
 import 'presentation/pages/schedule_list_page.dart';
-import 'presentation/pages/semester_settings_page.dart';
 import 'presentation/pages/week_schedule_page.dart';
 
 final _router = GoRouter(
@@ -34,10 +33,6 @@ final _router = GoRouter(
     GoRoute(
       path: '/schedules',
       builder: (context, state) => const ScheduleListPage(),
-    ),
-    GoRoute(
-      path: '/settings/semester',
-      builder: (context, state) => const SemesterSettingsPage(),
     ),
   ],
 );
