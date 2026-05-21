@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../core/config/action_item.dart';
 import '../../core/config/app_bar_config.dart';
@@ -15,6 +20,7 @@ import '../providers/course_provider.dart';
 import '../providers/schedule_provider.dart';
 import '../providers/semester_provider.dart';
 import '../providers/theme_provider.dart';
+import '../utils/import_helper.dart';
 import '../widgets/schedule_popup.dart';
 import '../widgets/theme_settings_dialog.dart';
 
@@ -326,6 +332,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   Widget _buildGridBody(List<Course> courses, int displayedWeek,
       {int periodCount = 12}) {
     final displayedDays = _getDisplayedWeekdays();
+    final hSpacing = ref.watch(themeSettingsProvider).horizontalSpacing;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -346,11 +353,16 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
             ),
           ),
         ),
-        // displayed week day columns
+        // displayed week day columns with horizontal spacing
         ...displayedDays.map(
           (dayOfWeek) => Expanded(
-            child:
-                _buildDayColumn(dayOfWeek, courses, displayedWeek, periodCount: periodCount),
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: dayOfWeek != displayedDays.first ? hSpacing : 0,
+              ),
+              child: _buildDayColumn(
+                  dayOfWeek, courses, displayedWeek, periodCount: periodCount),
+            ),
           ),
         ),
       ],
@@ -371,7 +383,9 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   }) {
     final slots = _getActiveSlotsForDay(dayOfWeek, courses, displayedWeek);
 
-    final blockHeight = ref.watch(themeSettingsProvider).blockHeight;
+    final settings = ref.watch(themeSettingsProvider);
+    final blockHeight = settings.blockHeight;
+    final courseSpacing = settings.courseSpacing;
 
     return SizedBox(
       height: periodCount * blockHeight,
@@ -381,7 +395,9 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
           // Course blocks — no grid lines, tightly packed
           ...slots.map((slot) {
             final top = (slot.timeDetail.startPeriod - 1) * blockHeight;
-            final height = slot.timeDetail.duration * blockHeight;
+            final height =
+                (slot.timeDetail.duration * blockHeight - courseSpacing)
+                    .clamp(0.0, double.infinity);
             return Positioned(
               top: top,
               left: 0,
@@ -421,8 +437,13 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   // ---------------------------------------------------------------------------
 
   Widget _buildCourseBlock(Course course) {
-    final courseColor =
+    final tSettings = ref.watch(themeSettingsProvider);
+    final baseColor =
         course.color != 0 ? Color(course.color) : Color(AppColors.presetCourseColors[0]);
+    final hsl = HSLColor.fromColor(baseColor);
+    final adjustedLightness =
+        (hsl.lightness * tSettings.colorLightness).clamp(0.0, 1.0);
+    final courseColor = hsl.withLightness(adjustedLightness).toColor();
     final radius = ref.watch(themeSettingsProvider).cornerRadius;
 
     return GestureDetector(
@@ -746,10 +767,51 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   void _exportCourses() {
     final courses = ref.read(courseListProvider).valueOrNull;
     if (courses == null || courses.isEmpty) return;
-    final json = ExportUtils.exportToJson(courses);
-    Clipboard.setData(ClipboardData(text: json));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('课表数据已复制到剪贴板')),
+    final compact = ExportUtils.compactEncode(courses);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('分享课表'),
+        content: const Text('选择导出方式：'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final copyText = '将该条消息复制，点击从文本导入即可导入课表。\n「$compact」';
+              Clipboard.setData(ClipboardData(text: copyText));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('已复制 (${compact.length} 字符)，打开从文本导入粘贴即可')),
+              );
+            },
+            child: const Text('复制紧凑码'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final dir = await getTemporaryDirectory();
+                final file = File('${dir.path}/fl${DateTime.now().microsecondsSinceEpoch}.txt');
+                final fileText = '将该条消息复制，点击从文本导入即可导入课表。\n「$compact」';
+                await file.writeAsString(fileText);
+                await Share.shareXFiles(
+                  [XFile(file.path)],
+                  text: '课表数据',
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('分享失败: $e')),
+                );
+              }
+            },
+            child: const Text('分享文件'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -758,37 +820,100 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('导入 JSON'),
+        title: const Text('从文本导入'),
         content: TextField(
           controller: controller,
           maxLines: 8,
           decoration: const InputDecoration(
-            hintText: '粘贴 JSON 内容...',
+            hintText: '粘贴包含「紧凑码」的内容...',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+              if (clipboardData == null || clipboardData.text == null) return;
+              controller.text = clipboardData.text!.trim();
+            },
+            child: const Text('从剪贴板粘贴'),
+          ),
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
-              final text = controller.text.trim();
-              if (text.isEmpty || !ExportUtils.isValidScheduleJson(text)) {
+              String text = controller.text.trim();
+              if (text.isEmpty) return;
+
+              // Extract compact code from 「…」
+              final match = RegExp(r'「(.+?)」').firstMatch(text);
+              if (match != null) text = match.group(1)!;
+
+              List<Course> courses;
+              try {
+                final uuid = const Uuid();
+                if (ExportUtils.isCompactFormat(text)) {
+                  courses = ExportUtils.compactDecode(text);
+                } else if (ExportUtils.isValidScheduleJson(text)) {
+                  courses = ExportUtils.importFromJson(text);
+                } else {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('无效的格式，请检查内容')),
+                  );
+                  return;
+                }
+                // Assign fresh UUIDs to avoid UNIQUE constraint conflicts
+                courses = courses.map((c) => c.copyWith(id: uuid.v4())).toList();
+              } catch (e) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('无效的 JSON 格式')),
+                  SnackBar(content: Text('导入失败: $e')),
                 );
                 return;
               }
+
               Navigator.pop(ctx);
-              final courses = ExportUtils.importFromJson(text);
-              final notifier = ref.read(courseListProvider.notifier);
-              for (final c in courses) {
-                notifier.addCourse(c);
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('成功导入 ${courses.length} 门课程')),
+              ImportHelper.showChoiceDialogAndImport(
+                context: context,
+                ref: ref,
+                courseCount: courses.length,
+                courses: courses,
+                onOverwrite: overwriteImport,
+                onNewSchedule: (r, c) async {
+                  // Show name dialog, then import
+                  final nameCtrl = TextEditingController();
+                  await showDialog(
+                    context: context,
+                    builder: (ctx2) => AlertDialog(
+                      title: const Text('新建课表'),
+                      content: TextField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '课表名称',
+                          hintText: '留空则自动生成',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx2), child: const Text('取消')),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx2);
+                          },
+                          child: const Text('确认导入'),
+                        ),
+                      ],
+                    ),
+                  );
+                  await newScheduleImport(r, c,
+                      scheduleName: nameCtrl.text.trim());
+                },
+                onComplete: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('成功导入 ${courses.length} 门课程')),
+                  );
+                },
               );
             },
-            child: const Text('导入'),
+            child: const Text('解析'),
           ),
         ],
       ),

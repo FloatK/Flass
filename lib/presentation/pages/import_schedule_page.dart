@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,9 +12,12 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/schedule_webview_helper.dart';
+import '../../data/datasources/database.dart' hide Course, TimeDetail, Schedule;
 import '../../data/datasources/edu_parser.dart';
 import '../../data/datasources/edu_parser_qz.dart';
-import '../providers/course_provider.dart';
+import '../../data/models/course.dart';
+import '../providers/semester_provider.dart';
+import '../utils/import_helper.dart';
 
 const _urlStoreFile = 'edu_url.json';
 
@@ -30,10 +34,9 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
   ScheduleWebViewHelper? _webViewHelper;
   final _urlController = TextEditingController();
   final _pasteController = TextEditingController();
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool _isParsing = false;
   List<ParsedCourse> _parsedCourses = [];
-  final Set<int> _selectedIndices = {};
   final EduParser _parser = const QiangZhiEduParser();
 
   bool get _isWebViewSupported =>
@@ -83,6 +86,11 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
         final url = data['url'] as String?;
         if (url != null && url.isNotEmpty) {
           _urlController.text = url;
+          // Auto-navigate to saved URL
+          final uri = Uri.tryParse(url);
+          if (uri != null && uri.hasScheme) {
+            _controller?.loadRequest(uri);
+          }
         }
       } catch (_) {}
     }
@@ -124,7 +132,6 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     setState(() {
       _isParsing = true;
       _parsedCourses = [];
-      _selectedIndices.clear();
     });
 
     try {
@@ -132,7 +139,10 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
       if (pastedHtml != null) {
         html = pastedHtml;
       } else {
-        final extracted = await _webViewHelper?.extractScheduleHtml();
+        final extracted = await _webViewHelper?.extractScheduleHtml(
+              maxAttempts: 8,
+              interval: const Duration(milliseconds: 500),
+            );
         html = extracted ?? '';
       }
 
@@ -149,7 +159,7 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
           const SnackBar(content: Text('未找到课程数据，请确认已登录并进入课表页面')),
         );
       } else if (courses.isNotEmpty) {
-        _showParseResults();
+        _showImportChoiceDialog();
       }
     } catch (e) {
       if (!mounted) return;
@@ -160,118 +170,135 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     }
   }
 
-  void _showParseResults() {
-    showModalBottomSheet(
+  void _showImportChoiceDialog() {
+    final courseList = _buildCourseList();
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (ctx, scrollController) {
-          return StatefulBuilder(
-            builder: (ctx, setSheetState) {
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        Text(
-                          '共 ${_parsedCourses.length} 门课程',
-                          style: Theme.of(ctx).textTheme.titleMedium,
-                        ),
-                        const Spacer(),
-                        if (_selectedIndices.isNotEmpty)
-                          FilledButton(
-                            onPressed: () async {
-                              await _batchSave();
-                              if (ctx.mounted) Navigator.pop(ctx);
-                            },
-                            child: Text('导入已选 (${_selectedIndices.length})'),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      itemCount: _parsedCourses.length,
-                      itemBuilder: (context, index) {
-                        final course = _parsedCourses[index];
-                        final isSelected =
-                            _selectedIndices.contains(index);
-                        return CheckboxListTile(
-                          value: isSelected,
-                          onChanged: (v) {
-                            setSheetState(() {
-                              setState(() {
-                                if (v == true) {
-                                  _selectedIndices.add(index);
-                                } else {
-                                  _selectedIndices.remove(index);
-                                }
-                              });
-                            });
-                          },
-                          title: Text(course.name),
-                          subtitle: Text(
-                            '${course.teacher}  ${course.location}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          secondary: CircleAvatar(
-                            backgroundColor: Color(
-                              AppColors.presetCourseColors[index %
-                                  AppColors.presetCourseColors.length],
-                            ),
-                            radius: 16,
-                            child: Text(
-                              course.name.isNotEmpty ? course.name[0] : '?',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              );
+      builder: (ctx) => AlertDialog(
+        title: Text('共 ${courseList.length} 门课程'),
+        content: const Text('选择导入方式：'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showImportConfig('overwrite', courseList);
             },
-          );
-        },
+            child: const Text('覆盖当前课表'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showImportConfig('new', courseList);
+            },
+            child: const Text('新建课表并导入'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _batchSave() async {
-    final notifier = ref.read(courseListProvider.notifier);
+  List<Course> _buildCourseList() {
     final uuid = const Uuid();
-    int saved = 0;
-
-    for (final index in _selectedIndices) {
-      final parsed = _parsedCourses[index];
-      final course = parsed.toCourse(
+    return List.generate(_parsedCourses.length, (i) {
+      return _parsedCourses[i].toCourse(
         id: uuid.v4(),
         color: AppColors.presetCourseColors[
-            index % AppColors.presetCourseColors.length],
+            i % AppColors.presetCourseColors.length],
       );
-      try {
-        await notifier.addCourse(course);
-        saved++;
-      } catch (_) {}
-    }
+    });
+  }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('成功导入 $saved 门课程')),
-      );
-      if (mounted) context.pop();
-    }
+  void _showImportConfig(String mode, List<Course> courses) {
+    final currentSemester = ref.read(activeSemesterProvider).valueOrNull;
+    final initialDate = currentSemester?.startDate.isNotEmpty == true
+        ? (DateTime.tryParse(currentSemester!.startDate.substring(0, 10)) ??
+            DateTime.now())
+        : DateTime.now();
+    final dateCtrl =
+        TextEditingController(text: initialDate.toIso8601String().substring(0, 10));
+    final nameCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(mode == 'overwrite' ? '覆盖当前课表' : '新建课表'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: dateCtrl,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: '开学日期',
+                border: OutlineInputBorder(),
+              ),
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: ctx,
+                  initialDate: DateTime.parse(dateCtrl.text),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (date != null) {
+                  dateCtrl.text = date.toIso8601String().substring(0, 10);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: '课表名称',
+                hintText: mode == 'overwrite'
+                    ? '留空则保留当前名称'
+                    : '留空则自动生成',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              // Update semester config with chosen start date
+              final semester = ref.read(activeSemesterProvider).valueOrNull;
+              await ref.read(activeSemesterProvider.notifier).setConfig(
+                    SemesterConfigsCompanion(
+                      name: drift.Value(semester?.name ?? '默认学期'),
+                      startDate: drift.Value('${dateCtrl.text}T00:00:00'),
+                      totalWeeks: drift.Value(semester?.totalWeeks ?? 20),
+                    ),
+                  );
+
+              if (mode == 'overwrite') {
+                await overwriteImport(ref, courses);
+              } else {
+                final scheduleName = nameCtrl.text.trim();
+                await newScheduleImport(ref, courses,
+                    scheduleName: scheduleName.isNotEmpty ? scheduleName : null);
+              }
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('成功导入 ${courses.length} 门课程')),
+                );
+                if (mounted) context.pop();
+              }
+            },
+            child: const Text('确认导入'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -294,13 +321,6 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
         ],
       ),
       body: _isWebViewSupported ? _buildWebViewBody(colorScheme) : _buildDesktopBody(colorScheme),
-      floatingActionButton: _isWebViewSupported
-          ? FloatingActionButton.small(
-              onPressed: () => _webViewHelper?.detectAndRedirect(),
-              tooltip: '跳转到课表页面',
-              child: const Icon(Icons.open_in_new, size: 20),
-            )
-          : null,
     );
   }
 

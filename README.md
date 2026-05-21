@@ -6,37 +6,30 @@
   <img src="https://img.shields.io/badge/license-Non--Commercial-red" alt="License">
 </p>
 
-一款基于 Flutter 的课程表 App，支持手动添加课程、教务系统导入、多课表管理、周视图展示、数据本地持久化。
-
-> 当前处于 **第二期** 阶段，核心功能已完成，部分细节仍在修复中。
+一款基于 Flutter 的跨平台课程表 App。支持教务系统导入、紧凑码分享、多课表管理、主题自定义、周视图展示，数据全量本地持久化。
 
 ---
 
 ## 功能
 
-### 第一期 MVP ✓
+### ✓ 已完成
 
-- **周视图课表** — 8 列 × 12 行网格，清晰展示每周课程
-- **课程管理** — 添加、编辑、删除课程，支持多时间段配置
-- **颜色标记** — 8 种预设颜色，课程一目了然
-- **周次切换** — 左右箭头切换查看不同周次的课程
-- **学期配置** — 设置开学日期和总周数，自动计算当前周
-- **数据持久化** — SQLite 本地存储，重启不丢失
-- **单双周支持** — 课程可设全周 / 单周 / 双周模式
-
-### 第二期 ✓（进行中）
-
-- **教务系统导入** — 强智教务系统 HTML 解析，WebView 内嵌浏览器抓取课表，支持 URL 持久化；桌面端降级为粘贴 HTML 源代码
-- **多课表管理** — 新建、重命名、切换、删除课表，课程按课表分类
-- **导出导入** — 课表 JSON 导出到剪贴板 / 粘贴 JSON 导入
-- **示例数据** — 首次启动自动填充 5 门示例课程
-
-### 规划中
-
-| 阶段 | 功能 |
+| 模块 | 功能 |
 |------|------|
-| 第三期 | 深色主题、Android 桌面小部件、上课提醒通知 |
+| **周视图课表** | 8 列 × 12 行网格，左右滑动切换周次，自动定位当前周，「回到本周」按钮，日期范围标注 |
+| **课程管理** | 添加、编辑、删除课程，支持多时间段（跨天/多周次），单双周全周模式，预设颜色标记 |
+| **教务系统导入** | 强智教务系统 HTML 解析，WebView 内嵌浏览器登录抓取，支持 URL 持久化；桌面端降级为粘贴 HTML 源代码 |
+| **文本导入** | 支持紧凑码和 JSON 两种格式粘贴导入，自动识别格式 |
+| **紧凑码分享** | 短键 JSON → GZip → base64Url 压缩编码，单行复制分享，支持从聊天消息提取导入 |
+| **多课表管理** | 创建、重命名、切换、删除课表，课程按课表隔离 |
+| **主题自定义** | 深色/亮色模式切换 + 主题色选择板 + 课程块圆角/高度/间距滑块 + 颜色明度调节；滑块拖拽时防 ScrollView 跳位 |
+| **AppBar 自定义** | 最多 4 个自定义快捷按钮，持久化记忆 |
+| **学期配置** | 开学日期 + 总周数设置，自动计算当前周，无课表时自动填充示例数据 |
 
+### 📋 规划中
+
+- Android 桌面小部件
+- 上课提醒通知
 ---
 
 ## 技术栈
@@ -48,8 +41,9 @@
 | 数据库 | Drift（SQLite），schema v2 |
 | 路由 | go_router |
 | 序列化 | freezed + json_serializable |
-| HTML 解析 | html（强智教务系统课表解析） |
+| HTML 解析 | 强智教务系统课表解析 |
 | WebView | webview_flutter（教务系统登录抓取） |
+| 持久化偏好 | SharedPreferences（主题、AppBar 配置） |
 | 文件/分享 | share_plus / file_picker |
 | 架构 | Clean Architecture（core → data → domain → presentation） |
 
@@ -62,19 +56,21 @@ lib/
 ├── main.dart                         # 入口，初始化数据库 & ProviderScope
 ├── app.dart                          # MaterialApp.router，主题 & 路由
 ├── core/
+│   ├── config/                       # ActionItem 枚举，AppBarConfig 持久化
 │   ├── constants/                    # AppColors, AppStrings
-│   ├── theme/                        # Material 3 主题
+│   ├── theme/                        # Material 3 主题构建
 │   └── utils/                        # date_utils, export_utils
 ├── data/
 │   ├── models/                       # freezed 模型: Course, TimeDetail, Schedule
 │   ├── datasources/                  # Drift 数据库、示例数据、edu_parser
 │   └── repositories/                 # 仓库实现: course, schedule
 ├── domain/
-│   └── repositories/                 # 仓库接口: course, schedule
+│   └── repositories/                 # 仓库接口
 └── presentation/
-    ├── pages/                        # 页面: 周视图、添加/编辑、导入、学期设置
-    ├── widgets/                      # 可复用组件
-    └── providers/                    # Riverpod Provider: course, semester, schedule
+    ├── pages/                        # 周视图、添加/编辑、教务导入、课表列表/编辑
+    ├── widgets/                      # 课程块、主题弹窗、浮窗、学期配置
+    ├── utils/                        # import_helper（共享导入逻辑）
+    └── providers/                    # Riverpod Provider: course, schedule, semester, theme
 ```
 
 ---
@@ -87,7 +83,7 @@ Course {
   String name;            // 课程名
   String teacher;         // 教师
   String? location;       // 教室（可选）
-  int color;              // 背景色
+  int color;              // 背景色 ARGB int（现可通过主题色明度调节联动）
   List<TimeDetail> timeDetails;  // 时间段列表
 }
 
@@ -102,18 +98,39 @@ TimeDetail {
 Schedule {
   String id;              // UUID
   String name;            // 课表名称
-  bool isDefault;         // 是否默认课表
   DateTime createdAt;     // 创建时间
+  DateTime? semesterStart;   // 学期开学日期
+  int? totalWeeks;        // 总周数
+  int? maxCoursesPerDay;  // 每日最大课程数
+  int? displayedWeekdays; // 显示周天数
 }
 ```
 
 ---
 
-## 已知问题（第二期待修）
+## 紧凑码格式
 
-- `webview_flutter` 仅支持 Android / iOS / macOS，Windows 桌面端使用粘贴 HTML 方式替代
-- `retrofit_generator` 与当前 Dart SDK 不兼容，暂时注释；后续网络对接时再启用
-- 课表切换弹窗首次点击偶尔仍显示 loading（Provider 预热时机问题）
+用于课表分享的压缩编码格式：
+
+```
+原数据 → 短键 JSON → GZip 压缩 → base64Url 编码 → 「 内嵌 」
+
+示例：
+将该条消息复制，点击从文本导入即可导入课表。
+「H4sIAAAA...w==」
+```
+
+### 特点
+- URL 安全，无特殊字符
+- 单行文本，方便复制粘贴
+- 可嵌入聊天消息（用 `「…」` 包裹）
+- 导入时自动提取编码内容解码
+
+---
+
+## 已知问题
+
+- `webview_flutter` 仅支持 Android / iOS / macOS，Windows暂无支持计划（以后应该也不会支持）
 - 教务导入在不同学校的强智系统版本间可能存在 HTML 结构差异
 
 ---
@@ -131,10 +148,6 @@ Schedule {
 ```bash
 # 安装依赖
 flutter pub get
-
-# 生成代码（freezed, drift, riverpod）
-dart run build_runner build --delete-conflicting-outputs
-
 # 运行
 flutter run
 ```
@@ -142,9 +155,6 @@ flutter run
 ### 开发
 
 ```bash
-# 持续代码生成
-dart run build_runner watch --delete-conflicting-outputs
-
 # 代码检查
 flutter analyze
 ```

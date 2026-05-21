@@ -15,11 +15,11 @@ enum ActionItem {
   String get displayName {
     switch (this) {
       case ActionItem.importTimetable:
-        return '导入课表';
+        return '从教务导入';
       case ActionItem.exportTimetable:
         return '分享课表';
       case ActionItem.importJson:
-        return '从 JSON 导入';
+        return '从文本导入';
       case ActionItem.previousWeek:
         return '上一周';
       case ActionItem.nextWeek:
@@ -44,7 +44,7 @@ enum ActionItem {
       case ActionItem.exportTimetable:
         return Icons.share;
       case ActionItem.importJson:
-        return Icons.upload_file;
+        return Icons.file_download;
       case ActionItem.previousWeek:
         return Icons.chevron_left;
       case ActionItem.nextWeek:

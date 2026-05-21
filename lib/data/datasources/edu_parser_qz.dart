@@ -114,6 +114,9 @@ class QiangZhiEduParser extends EduParser {
 
     if (name.isEmpty) return null;
 
+    // Strip trailing red P/O markers (e.g., "高等数学 P" → "高等数学")
+    name = name.replaceAll(RegExp(r'\s+[PO]$'), '').trim();
+
     // Parse weeks and periods
     int startPeriod = 1;
     int duration = 2;

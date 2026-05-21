@@ -54,9 +54,7 @@ class ScheduleListPage extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: isActive
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),

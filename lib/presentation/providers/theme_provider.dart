@@ -8,13 +8,19 @@ class ThemeSettings {
   final int colorIndex;
   final double cornerRadius;
   final double blockHeight;
+  final double courseSpacing;
+  final double horizontalSpacing;
+  final double colorLightness;
 
   const ThemeSettings({
     this.followSystem = true,
     this.brightness = Brightness.light,
     this.colorIndex = 0,
-    this.cornerRadius = 8.0,
-    this.blockHeight = 60.0,
+    this.cornerRadius = 10.0,
+    this.blockHeight = 70.0,
+    this.courseSpacing = 3.0,
+    this.horizontalSpacing = 2.0,
+    this.colorLightness = 1.2,
   });
 
   static const List<Color> presetThemeColors = [
@@ -38,8 +44,11 @@ Future<ThemeSettings> loadThemeSettings() async {
             ? Brightness.dark
             : Brightness.light,
     colorIndex: prefs.getInt('theme_color_index') ?? 0,
-    cornerRadius: prefs.getDouble('theme_corner_radius') ?? 8.0,
-    blockHeight: prefs.getDouble('theme_block_height') ?? 60.0,
+    cornerRadius: prefs.getDouble('theme_corner_radius') ?? 10.0,
+    blockHeight: prefs.getDouble('theme_block_height') ?? 70.0,
+    courseSpacing: prefs.getDouble('theme_course_spacing') ?? 3.0,
+    horizontalSpacing: prefs.getDouble('theme_horizontal_spacing') ?? 2.0,
+    colorLightness: prefs.getDouble('theme_color_lightness') ?? 1.2,
   );
 }
 
@@ -53,6 +62,9 @@ Future<void> saveThemeSettings(ThemeSettings settings) async {
   await prefs.setInt('theme_color_index', settings.colorIndex);
   await prefs.setDouble('theme_corner_radius', settings.cornerRadius);
   await prefs.setDouble('theme_block_height', settings.blockHeight);
+  await prefs.setDouble('theme_course_spacing', settings.courseSpacing);
+  await prefs.setDouble('theme_horizontal_spacing', settings.horizontalSpacing);
+  await prefs.setDouble('theme_color_lightness', settings.colorLightness);
 }
 
 final themeSettingsProvider = StateProvider<ThemeSettings>((ref) {
