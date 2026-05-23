@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/config/action_item.dart';
 import '../../core/config/app_bar_config.dart';
 import '../../core/constants/app_strings.dart';
-import '../../core/utils/ui_utils.dart';
 import '../../data/datasources/database.dart' hide Course, TimeDetail, Schedule;
 import '../../data/models/course.dart';
 import '../providers/course_provider.dart';
@@ -15,6 +14,7 @@ import '../widgets/course_detail_bottom_sheet.dart';
 import '../widgets/course_grid_widget.dart';
 import '../widgets/export_import_dialogs.dart';
 import '../widgets/schedule_popup.dart';
+import '../widgets/swap_course_dialog.dart';
 import '../widgets/theme_settings_dialog.dart';
 
 class WeekSchedulePage extends ConsumerStatefulWidget {
@@ -306,43 +306,23 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
         setState(() => _weekOffset = 0);
       case ActionItem.selectTimetable:
         context.push('/schedules');
-      case ActionItem.clearCache:
-        _showClearCacheDialog();
-      case ActionItem.about:
-        showAboutDialog(
-          context: context,
-          applicationName: 'WakeUp 课程表',
-          applicationVersion: '0.1.0',
-        );
       case ActionItem.themeSettings:
         showDialog(
           context: context,
           builder: (_) => const ThemeSettingsDialog(),
         );
+      case ActionItem.swapCourse:
+        final courses = ref.read(courseListProvider).valueOrNull ?? [];
+        final semester = ref.read(activeSemesterProvider).valueOrNull;
+        if (semester != null) {
+          SwapCourseDialog.show(
+            context,
+            courses,
+            displayed,
+            DateTime.parse(semester.startDate),
+          );
+        }
     }
-  }
-
-  void _showClearCacheDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.clearCache),
-        content: const Text(AppStrings.confirmClearCache),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              showAppSnackBar(context, AppStrings.cacheCleared);
-            },
-            child: const Text(AppStrings.confirm),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSchedulePopup(BuildContext context) {

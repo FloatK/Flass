@@ -99,11 +99,20 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
 
   void _showImportDialog(List<ParsedCourse> parsedCourses) {
     final uuid = const Uuid();
+    // 按课程名称分配颜色：同名课程使用相同颜色，不同名课程尽量不同
+    final colorMap = <String, int>{};
+    var colorIndex = 0;
+    for (final pc in parsedCourses) {
+      if (!colorMap.containsKey(pc.name)) {
+        colorMap[pc.name] = AppColors
+            .presetCourseColors[colorIndex % AppColors.presetCourseColors.length];
+        colorIndex++;
+      }
+    }
     final courses = List.generate(parsedCourses.length, (i) {
       return parsedCourses[i].toCourse(
         id: uuid.v4(),
-        color:
-            AppColors.presetCourseColors[i % AppColors.presetCourseColors.length],
+        color: colorMap[parsedCourses[i].name]!,
       );
     });
 

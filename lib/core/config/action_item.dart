@@ -8,9 +8,8 @@ enum ActionItem {
   nextWeek,
   goToCurrentWeek,
   selectTimetable,
-  clearCache,
-  about,
-  themeSettings;
+  themeSettings,
+  swapCourse;
 
   String get displayName {
     switch (this) {
@@ -28,12 +27,10 @@ enum ActionItem {
         return '返回当前周';
       case ActionItem.selectTimetable:
         return '选择课表';
-      case ActionItem.clearCache:
-        return '清除缓存';
-      case ActionItem.about:
-        return '关于';
       case ActionItem.themeSettings:
         return '主题';
+      case ActionItem.swapCourse:
+        return '调课';
     }
   }
 
@@ -53,12 +50,10 @@ enum ActionItem {
         return Icons.radio_button_checked;
       case ActionItem.selectTimetable:
         return Icons.calendar_today;
-      case ActionItem.clearCache:
-        return Icons.cleaning_services_outlined;
-      case ActionItem.about:
-        return Icons.info_outline;
       case ActionItem.themeSettings:
         return Icons.palette;
+      case ActionItem.swapCourse:
+        return Icons.swap_horiz;
     }
   }
 

@@ -44,19 +44,33 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
   final _nameController = TextEditingController();
   final _teacherController = TextEditingController();
   final _locationController = TextEditingController();
+  final _scrollController = ScrollController();
   int _selectedColor = AppColors.presetCourseColors.first;
   final List<_TimeEntryData> _timeEntries = [_TimeEntryData()];
   bool _initialized = false;
   bool _saving = false;
+  bool _showSaveButton = true;
+  double _lastScrollPosition = 0;
 
   bool get _isEditing => widget.courseId != null;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadExistingCourse();
     });
+  }
+
+  void _onScroll() {
+    final currentPos = _scrollController.position.pixels;
+    if (currentPos > _lastScrollPosition + 10 && _showSaveButton) {
+      setState(() => _showSaveButton = false);
+    } else if (currentPos < _lastScrollPosition - 10 && !_showSaveButton) {
+      setState(() => _showSaveButton = true);
+    }
+    _lastScrollPosition = currentPos;
   }
 
   void _loadExistingCourse() {
@@ -90,6 +104,7 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
     _nameController.dispose();
     _teacherController.dispose();
     _locationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -185,6 +200,7 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,31 +253,27 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
               const SizedBox(height: 8),
               _buildAddTimeButton(colorScheme),
 
-              const SizedBox(height: 32),
-
-              // ── Save ──
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(AppStrings.save),
-                ),
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 80),
             ],
           ),
         ),
       ),
+      floatingActionButton: AnimatedSlide(
+        offset: _showSaveButton ? Offset.zero : const Offset(0, 2),
+        duration: const Duration(milliseconds: 200),
+        child: FloatingActionButton.extended(
+          onPressed: _saving ? null : _save,
+          icon: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save),
+          label: Text(_saving ? '' : AppStrings.save),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 

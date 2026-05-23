@@ -1,7 +1,7 @@
 class AppStrings {
   AppStrings._();
 
-  static const String appTitle = 'WakeUp 课程表';
+  static const String appTitle = 'Flass';
   static const String addCourse = '添加课程';
   static const String editCourse = '编辑课程';
   static const String semesterSettings = '学期设置';

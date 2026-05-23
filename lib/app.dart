@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
+import 'presentation/pages/about_page.dart';
 import 'presentation/pages/add_edit_course_page.dart';
 import 'presentation/pages/import_schedule_page.dart';
 import 'presentation/pages/schedule_list_page.dart';
+import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/week_schedule_page.dart';
 import 'presentation/providers/theme_provider.dart';
 
@@ -35,6 +37,14 @@ final _router = GoRouter(
       path: '/schedules',
       builder: (context, state) => const ScheduleListPage(),
     ),
+    GoRoute(
+      path: '/about',
+      builder: (context, state) => const AboutPage(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsPage(),
+    ),
   ],
 );
 
@@ -56,7 +66,7 @@ class App extends ConsumerWidget {
           : settings.brightness == Brightness.dark
               ? ThemeMode.dark
               : ThemeMode.light,
-      title: 'WakeUp 课程表',
+      title: 'Flass',
     );
   }
 }

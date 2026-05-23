@@ -46,6 +46,9 @@ class CourseGridWidget extends ConsumerWidget {
         semesterStart.add(Duration(days: (displayedWeek - 1) * 7));
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
+    final settings = ref.watch(themeSettingsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final gridBgColor = settings.getGridBackgroundColor(colorScheme);
 
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -56,15 +59,18 @@ class CourseGridWidget extends ConsumerWidget {
           onSwipeWeek?.call(-1);
         }
       },
-      child: Column(
-        children: [
-          _buildHeader(context, ref, weekStart, todayStart),
-          Expanded(
-            child: SingleChildScrollView(
-              child: _buildGridBody(context, ref),
+      child: Container(
+        color: gridBgColor,
+        child: Column(
+          children: [
+            _buildHeader(context, ref, weekStart, todayStart),
+            Expanded(
+              child: SingleChildScrollView(
+                child: _buildGridBody(context, ref),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -155,6 +161,7 @@ class CourseGridWidget extends ConsumerWidget {
     final settings = ref.watch(themeSettingsProvider);
     final hSpacing = settings.horizontalSpacing;
     final blockHeight = settings.blockHeight;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +190,7 @@ class CourseGridWidget extends ConsumerWidget {
               padding: EdgeInsets.only(
                 left: dayOfWeek != weekdays.first ? hSpacing : 0,
               ),
-              child: _buildDayColumn(ref, dayOfWeek),
+              child: _buildDayColumn(ref, dayOfWeek, isDark: isDark),
             ),
           ),
         ),
@@ -191,7 +198,7 @@ class CourseGridWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildDayColumn(WidgetRef ref, int dayOfWeek) {
+  Widget _buildDayColumn(WidgetRef ref, int dayOfWeek, {required bool isDark}) {
     final slots = _getActiveSlotsForDay(dayOfWeek);
     final settings = ref.watch(themeSettingsProvider);
     final blockHeight = settings.blockHeight;
@@ -211,7 +218,7 @@ class CourseGridWidget extends ConsumerWidget {
             left: 0,
             right: 0,
             height: height,
-            child: _buildCourseBlock(ref, slot.course),
+            child: _buildCourseBlock(ref, slot.course, isDark: isDark),
           );
         }).toList(),
       ),
@@ -222,15 +229,25 @@ class CourseGridWidget extends ConsumerWidget {
   // Course block
   // ---------------------------------------------------------------------------
 
-  Widget _buildCourseBlock(WidgetRef ref, Course course) {
+  Widget _buildCourseBlock(WidgetRef ref, Course course, {required bool isDark}) {
     final tSettings = ref.watch(themeSettingsProvider);
+
     final baseColor = course.color != 0
         ? Color(course.color)
         : Color(AppColors.presetCourseColors[0]);
-    final hsl = HSLColor.fromColor(baseColor);
-    final adjustedLightness =
-        (hsl.lightness * tSettings.colorLightness).clamp(0.0, 1.0);
-    final courseColor = hsl.withLightness(adjustedLightness).toColor();
+
+    Color courseColor;
+    if (isDark) {
+      // Dark mode: auto-dim colors
+      courseColor = tSettings.getDarkModeCourseColor(baseColor.value);
+    } else {
+      // Light mode: use normal color adjustment
+      final hsl = HSLColor.fromColor(baseColor);
+      final adjustedLightness =
+          (hsl.lightness * tSettings.colorLightness).clamp(0.0, 1.0);
+      courseColor = hsl.withLightness(adjustedLightness).toColor();
+    }
+
     final radius = tSettings.cornerRadius;
 
     return GestureDetector(
@@ -261,9 +278,7 @@ class CourseGridWidget extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 1),
                 child: Text(
                   course.location!,
-                  style: const TextStyle(color: Colors.white70, fontSize: 9),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 9),
                 ),
               ),
           ],

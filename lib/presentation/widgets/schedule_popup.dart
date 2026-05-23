@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/config/action_item.dart';
 import '../../core/config/app_bar_config.dart';
@@ -136,7 +137,7 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
   }
 
   Widget _buildActionGrid(List<ActionItem> items) {
-    // All buttons including settings
+    // All buttons including settings and config
     final allButtons = [
       ...items.map((item) => _ActionGridButtonData(
             label: item.displayName,
@@ -147,8 +148,16 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
             },
           )),
       _ActionGridButtonData(
-        label: '配置',
+        label: '设置',
         icon: Icons.settings,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/settings');
+        },
+      ),
+      _ActionGridButtonData(
+        label: '配置工具栏',
+        icon: Icons.tune,
         onTap: () {
           Navigator.pop(context);
           _showConfigDialog(context, widget.appBarItems, widget.onConfigChanged);
@@ -251,7 +260,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('配置 AppBar 按钮'),
+      title: const Text('配置工具栏'),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
