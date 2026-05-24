@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -48,7 +49,8 @@ class CourseGridWidget extends ConsumerWidget {
     final todayStart = DateTime(now.year, now.month, now.day);
     final settings = ref.watch(themeSettingsProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final gridBgColor = settings.getGridBackgroundColor(colorScheme);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gridBgColor = settings.getGridBackgroundColor(colorScheme, isDark);
 
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -251,7 +253,12 @@ class CourseGridWidget extends ConsumerWidget {
     final radius = tSettings.cornerRadius;
 
     return GestureDetector(
-      onTap: () => onCourseTap?.call(course),
+      onTap: () {
+        if (tSettings.vibrationEnabled) {
+          HapticFeedback.lightImpact();
+        }
+        onCourseTap?.call(course);
+      },
       child: Container(
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(

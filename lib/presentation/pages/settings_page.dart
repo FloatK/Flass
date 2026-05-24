@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/ui_utils.dart';
-import '../widgets/theme_settings_dialog.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -15,32 +14,10 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  bool _vibrationEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVibrationSetting();
-  }
-
-  Future<void> _loadVibrationSetting() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _vibrationEnabled = prefs.getBool('vibration_enabled') ?? false;
-    });
-  }
-
-  Future<void> _toggleVibration(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('vibration_enabled', value);
-    setState(() {
-      _vibrationEnabled = value;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -49,37 +26,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: ListView(
         children: [
           const SizedBox(height: 16),
-          // Theme settings
+          // Interaction settings
           _buildSection(
             context,
-            title: '主题设置',
-            children: [
-              ListTile(
-                leading: const Icon(Icons.palette),
-                title: const Text(AppStrings.themeSettings),
-                subtitle: const Text('颜色、深色模式、布局'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const ThemeSettingsDialog(),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Feedback settings
-          _buildSection(
-            context,
-            title: '交互反馈',
+            title: '交互',
             children: [
               SwitchListTile(
                 secondary: const Icon(Icons.vibration),
-                title: const Text('震动反馈'),
-                subtitle: const Text('点击按钮时震动'),
-                value: _vibrationEnabled,
-                onChanged: _toggleVibration,
+                title: const Text('振动反馈'),
+                subtitle: const Text('点击课表时给予轻微振动'),
+                value: settings.vibrationEnabled,
+                onChanged: (v) {
+                  ref.read(themeSettingsProvider.notifier).state =
+                      settings.copyWith(vibrationEnabled: v);
+                  saveThemeSettings(settings.copyWith(vibrationEnabled: v));
+                },
               ),
             ],
           ),

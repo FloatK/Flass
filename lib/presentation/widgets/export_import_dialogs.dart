@@ -5,10 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/export_utils.dart';
+import '../../core/utils/import_utils.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../data/models/course.dart';
 import '../utils/import_helper.dart';
@@ -121,7 +121,9 @@ class _ImportFromTextDialogState extends ConsumerState<ImportFromTextDialog> {
           onPressed: () async {
             final clipboardData =
                 await Clipboard.getData(Clipboard.kTextPlain);
-            if (clipboardData == null || clipboardData.text == null) return;
+            if (clipboardData == null || clipboardData.text == null) {
+              return;
+            }
             _controller.text = clipboardData.text!.trim();
           },
           child: const Text(AppStrings.pasteFromClipboard),
@@ -138,75 +140,55 @@ class _ImportFromTextDialogState extends ConsumerState<ImportFromTextDialog> {
     );
   }
 
-  void _parseAndImport(BuildContext context) {
+  Future<void> _parseAndImport(BuildContext context) async {
     String text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    // Extract compact code from 「…」
-    final match = RegExp(r'「(.+?)」').firstMatch(text);
-    if (match != null) text = match.group(1)!;
-
     List<Course> courses;
     try {
-      final uuid = const Uuid();
-      if (ExportUtils.isCompactFormat(text)) {
-        courses = ExportUtils.compactDecode(text);
-      } else if (ExportUtils.isValidScheduleJson(text)) {
-        courses = ExportUtils.importFromJson(text);
-      } else {
-        showAppSnackBar(context, AppStrings.invalidFormat, isError: true);
+      final result = ImportUtils.parseAndPrepareImport(text);
+      if (result == null) {
+        if (mounted) {
+          showAppSnackBar(context, AppStrings.invalidFormat, isError: true);
+        }
         return;
       }
-      // Assign fresh UUIDs to avoid UNIQUE constraint conflicts
-      courses = courses.map((c) => c.copyWith(id: uuid.v4())).toList();
+      courses = result;
     } catch (e) {
-      showAppSnackBar(context, '${AppStrings.importFailed}: $e',
-          isError: true);
+      if (mounted) {
+        showAppSnackBar(context, '${AppStrings.importFailed}: $e',
+            isError: true);
+      }
       return;
     }
 
-    Navigator.pop(context);
-    ImportHelper.showChoiceDialogAndImport(
-      context: context,
-      ref: ref,
-      courseCount: courses.length,
-      courses: courses,
-      onOverwrite: overwriteImport,
-      onNewSchedule: (r, c) async {
-        final nameCtrl = TextEditingController();
-        await showDialog(
-          context: context,
-          builder: (ctx2) => AlertDialog(
-            title: const Text(AppStrings.newSchedule),
-            content: TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: AppStrings.scheduleName,
-                hintText: AppStrings.scheduleNameHint,
-                border: OutlineInputBorder(),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx2),
-                child: const Text(AppStrings.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx2),
-                child: const Text(AppStrings.confirmImport),
-              ),
-            ],
-          ),
-        );
-        await newScheduleImport(r, c,
-            scheduleName: nameCtrl.text.trim());
-      },
-      onComplete: () {
-        if (context.mounted) {
-          showAppSnackBar(
-              context, AppStrings.importCourseCount(courses.length));
-        }
-      },
-    );
+    // Close the text input dialog first
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
+    // Wait a frame to ensure the dialog is fully closed
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Show the import choice dialog
+    // ImportHelper now uses ConsumerStatefulWidget with its own ref,
+    // so no "ref disposed" error will occur
+    if (mounted) {
+      ImportHelper.showChoiceDialogAndImport(
+        context: context,
+        courseCount: courses.length,
+        courses: courses,
+        onOverwrite: overwriteImport,
+        onNewSchedule: (r, c, scheduleName) async {
+          await newScheduleImport(r, c, scheduleName: scheduleName);
+        },
+        onComplete: () {
+          if (context.mounted) {
+            showAppSnackBar(
+                context, AppStrings.importCourseCount(courses.length));
+          }
+        },
+      );
+    }
   }
 }

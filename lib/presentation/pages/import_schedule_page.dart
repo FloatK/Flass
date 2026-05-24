@@ -118,37 +118,11 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
 
     ImportHelper.showChoiceDialogAndImport(
       context: context,
-      ref: ref,
       courseCount: courses.length,
       courses: courses,
       onOverwrite: overwriteImport,
-      onNewSchedule: (r, c) async {
-        final nameCtrl = TextEditingController();
-        await showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text(AppStrings.newSchedule),
-            content: TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: AppStrings.scheduleName,
-                hintText: AppStrings.scheduleNameHint,
-                border: OutlineInputBorder(),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(AppStrings.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(AppStrings.confirmImport),
-              ),
-            ],
-          ),
-        );
-        await newScheduleImport(r, c, scheduleName: nameCtrl.text.trim());
+      onNewSchedule: (r, c, scheduleName) async {
+        await newScheduleImport(r, c, scheduleName: scheduleName);
       },
       onComplete: () {
         if (mounted) {

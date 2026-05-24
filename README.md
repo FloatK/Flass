@@ -1,166 +1,152 @@
-# WakeUp 课程表
+# Flass — Flutter 课表 App
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Flutter-3.41-blue?logo=flutter" alt="Flutter">
-  <img src="https://img.shields.io/badge/Dart-3.11-blue?logo=dart" alt="Dart">
-  <img src="https://img.shields.io/badge/license-Non--Commercial-red" alt="License">
-</p>
-
-一款基于 Flutter 的跨平台课程表 App。支持教务系统导入、紧凑码分享、多课表管理、主题自定义、周视图展示，数据全量本地持久化。
-
----
+一个轻量、美观、可高度自定义的课程表应用，使用 Flutter 构建。
 
 ## 功能
 
-### ✓ 已完成
+### 课表展示
+- 按周展示课程表，支持上一周/下一周/回到当前周导航
+- 课程块支持圆角、高度、间距自定义
+- 点击课程弹出详情底部面板
+- 深色模式自动压暗课程颜色
 
-| 模块 | 功能 |
-|------|------|
-| **周视图课表** | 8 列 × 12 行网格，左右滑动切换周次，自动定位当前周，「回到本周」按钮，日期范围标注 |
-| **课程管理** | 添加、编辑、删除课程，支持多时间段（跨天/多周次），单双周全周模式，预设颜色标记 |
-| **教务系统导入** | 强智教务系统 HTML 解析，WebView 内嵌浏览器登录抓取，支持 URL 持久化；桌面端降级为粘贴 HTML 源代码 |
-| **文本导入** | 支持紧凑码和 JSON 两种格式粘贴导入，自动识别格式 |
-| **紧凑码分享** | 短键 JSON → GZip → base64Url 压缩编码，单行复制分享，支持从聊天消息提取导入 |
-| **多课表管理** | 创建、重命名、切换、删除课表，课程按课表隔离 |
-| **主题自定义** | 深色/亮色模式切换 + 主题色选择板 + 课程块圆角/高度/间距滑块 + 颜色明度调节；滑块拖拽时防 ScrollView 跳位 |
-| **AppBar 自定义** | 最多 4 个自定义快捷按钮，持久化记忆 |
-| **学期配置** | 开学日期 + 总周数设置，自动计算当前周，无课表时自动填充示例数据 |
+### 课程管理
+- 添加/编辑/删除课程
+- 每个课程支持多个时间段（不同日期、不同节次）
+- 选择/全选/单周/双周上课周次
+- 课程颜色选择器（8 种预设色）
+- 调课功能：将课程移动到指定日期
 
-### 📋 规划中
+### 课表管理
+- 多课表支持（创建、重命名、删除、切换）
+- 默认课表机制
+- 每个课表独立设置显示天数和每日最大课程数
+- 学期设置（开学日期、总周数）
 
-- Android 桌面小部件
-- 上课提醒通知
----
+### 导入功能
+- **教务系统导入**：内置 WebView 访问教务系统，抓取课表页面自动解析
+- **文本导入**：粘贴紧凑码（GZip + base64 编码），一键导入课表
+- 导入时支持「覆盖当前课表」或「新建课表并导入」
+- 桌面端支持粘贴 HTML 源代码解析
+
+### 导出 & 分享
+- 紧凑码编码：课表数据 → 短键 JSON → GZip → base64Url 单行文本
+- 复制到剪贴板或分享文件
+
+### 主题设置
+- 跟随系统深色模式 / 手动切换亮暗
+- 8 种主题色
+- 课程圆角半径、课程块高度、课程间距、列间距
+- 颜色深浅调节（HSL 亮度因子 0.5–1.8）
+- 课表底板背景色跟随主题色
+
+### 交互反馈
+- 点击课程振动反馈（可关闭）
+- 可配置工具栏按钮
 
 ## 技术栈
 
-| 类别 | 技术 |
+| 层级 | 技术 |
 |------|------|
-| 框架 | Flutter 3.x + Dart 3 |
-| 状态管理 | Riverpod（`@riverpod` 代码生成） |
-| 数据库 | Drift（SQLite），schema v2 |
-| 路由 | go_router |
-| 序列化 | freezed + json_serializable |
-| HTML 解析 | 强智教务系统课表解析 |
-| WebView | webview_flutter（教务系统登录抓取） |
-| 持久化偏好 | SharedPreferences（主题、AppBar 配置） |
-| 文件/分享 | share_plus / file_picker |
-| 架构 | Clean Architecture（core → data → domain → presentation） |
-
----
+| 框架 | Flutter + Material 3 |
+| 状态管理 | Riverpod 2.x（StateProvider、FutureProvider、StreamProvider） |
+| 数据库 | drift（SQLite ORM，支持流式查询） |
+| 路由 | go\_router |
+| 代码生成 | freezed（数据类）、json\_serializable、riverpod\_generator、drift\_dev |
+| 本地化 | flutter\_localizations，中英双语 |
+| 网络 | dio + retrofit（教务 API）、webview\_flutter（内置浏览器） |
+| 存储 | SharedPreferences（主题设置持久化） |
+| 其他 | uuid、share\_plus、path\_provider、html 解析 |
 
 ## 项目结构
 
 ```
 lib/
-├── main.dart                         # 入口，初始化数据库 & ProviderScope
-├── app.dart                          # MaterialApp.router，主题 & 路由
+├── app.dart                          # MaterialApp 入口（主题 + 本地化）
+├── main.dart                         # 初始化（数据库、主题设置）
 ├── core/
-│   ├── config/                       # ActionItem 枚举，AppBarConfig 持久化
-│   ├── constants/                    # AppColors, AppStrings
-│   ├── theme/                        # Material 3 主题构建
-│   └── utils/                        # date_utils, export_utils
+│   ├── config/                       # AppBar 按钮配置、ActionItem 枚举
+│   ├── constants/                    # AppStrings、AppColors 常量
+│   ├── theme/                        # ThemeData 构建（动态主题色）
+│   └── utils/                        # 公共工具类
+│       ├── export_utils.dart         # 紧凑码编解码
+│       ├── import_utils.dart         # 导入解析（纯 Dart，无 UI 依赖）
+│       ├── ui_utils.dart             # SnackBar 等 UI 工具
+│       ├── week_utils.dart           # 周次解析
+│       ├── date_utils.dart           # 日期工具
+│       ├── edu_system_webview_controller.dart  # 教务 WebView 控制器
+│       └── edu_url_store.dart        # 教务 URL 持久化
 ├── data/
-│   ├── models/                       # freezed 模型: Course, TimeDetail, Schedule
-│   ├── datasources/                  # Drift 数据库、示例数据、edu_parser
-│   └── repositories/                 # 仓库实现: course, schedule
+│   ├── datasources/
+│   │   ├── database.dart             # drift 数据库定义 + 迁移
+│   │   ├── edu_parser.dart           # 课表 HTML 解析接口
+│   │   ├── edu_parser_qz.dart        # 强智教务系统解析实现
+│   │   └── sample_data.dart          # 示例数据
+│   ├── models/
+│   │   ├── course.dart               # Course（freezed）
+│   │   ├── schedule.dart             # Schedule（freezed）
+│   │   └── ...
+│   └── repositories/                 # 数据库访问实现
 ├── domain/
-│   └── repositories/                 # 仓库接口
+│   └── repositories/                 # 仓库接口定义
 └── presentation/
-    ├── pages/                        # 周视图、添加/编辑、教务导入、课表列表/编辑
-    ├── widgets/                      # 课程块、主题弹窗、浮窗、学期配置
-    ├── utils/                        # import_helper（共享导入逻辑）
-    └── providers/                    # Riverpod Provider: course, schedule, semester, theme
+    ├── pages/                        # 页面
+    │   ├── week_schedule_page.dart    # 主课表页面
+    │   ├── import_schedule_page.dart  # 教务导入页面
+    │   ├── add_edit_course_page.dart  # 添加/编辑课程
+    │   ├── schedule_list_page.dart    # 课表列表页面
+    │   ├── schedule_edit_page.dart    # 课表编辑（学期设置）
+    │   ├── settings_page.dart         # 设置页面
+    │   └── about_page.dart            # 关于页面
+    ├── providers/                     # Riverpod 状态管理
+    │   ├── theme_provider.dart        # 主题设置模型 + 持久化
+    │   ├── course_provider.dart       # 课程列表流
+    │   ├── schedule_provider.dart     # 课表列表 + 当前课表
+    │   └── semester_provider.dart     # 学期配置
+    ├── utils/                         # 页面级工具
+    │   └── import_helper.dart         # 导入流程（选择对话框、覆盖/新建）
+    └── widgets/                       # UI 组件
+        ├── course_grid_widget.dart    # 课程网格
+        ├── course_detail_bottom_sheet.dart  # 课程详情底部面板
+        ├── export_import_dialogs.dart  # 导出/文本导入对话框
+        ├── swap_course_dialog.dart    # 调课对话框
+        ├── theme_settings_dialog.dart # 主题设置弹窗
+        └── schedule_popup.dart        # 工具栏弹出菜单
 ```
-
----
-
-## 数据模型
-
-```dart
-Course {
-  String id;              // UUID
-  String name;            // 课程名
-  String teacher;         // 教师
-  String? location;       // 教室（可选）
-  int color;              // 背景色 ARGB int（现可通过主题色明度调节联动）
-  List<TimeDetail> timeDetails;  // 时间段列表
-}
-
-TimeDetail {
-  int dayOfWeek;          // 1=周一, 7=周日
-  int startPeriod;        // 起始节次 1-12
-  int duration;           // 持续节数 1-3
-  List<int> weeks;        // 上课周次
-  String singleOrDouble;  // 'all' | 'single' | 'double'
-}
-
-Schedule {
-  String id;              // UUID
-  String name;            // 课表名称
-  DateTime createdAt;     // 创建时间
-  DateTime? semesterStart;   // 学期开学日期
-  int? totalWeeks;        // 总周数
-  int? maxCoursesPerDay;  // 每日最大课程数
-  int? displayedWeekdays; // 显示周天数
-}
-```
-
----
-
-## 紧凑码格式
-
-用于课表分享的压缩编码格式：
-
-```
-原数据 → 短键 JSON → GZip 压缩 → base64Url 编码 → 「 内嵌 」
-
-示例：
-将该条消息复制，点击从文本导入即可导入课表。
-「H4sIAAAA...w==」
-```
-
-### 特点
-- URL 安全，无特殊字符
-- 单行文本，方便复制粘贴
-- 可嵌入聊天消息（用 `「…」` 包裹）
-- 导入时自动提取编码内容解码
-
----
-
-## 已知问题
-
-- `webview_flutter` 仅支持 Android / iOS / macOS，Windows暂无支持计划（以后应该也不会支持）
-- 教务导入在不同学校的强智系统版本间可能存在 HTML 结构差异
-
----
 
 ## 快速开始
 
-### 环境要求
-
-- Flutter 3.x
-- Dart 3.x
-- Windows / macOS / Linux / Android / iOS
-
-### 运行
-
 ```bash
+# 克隆项目
+git clone <repo-url>
+cd flass
+
 # 安装依赖
 flutter pub get
+
+# 代码生成（freezed、drift、json_serializable）
+dart run build_runner build --delete-conflicting-outputs
+
 # 运行
 flutter run
 ```
 
-### 开发
+> 注意：部分功能（如教务系统导入）需要 WebView 支持。在桌面端（Windows/Linux）会回退为粘贴 HTML 源代码的方式。
 
-```bash
-# 代码检查
-flutter analyze
-```
+## 本地化
 
----
+App 自动跟随系统语言显示中文或英文界面。支持语言：
 
-## 许可
+- 简体中文（`zh`）
+- 英文（`en`）
 
-本仓库仅用于学习与个人用途。未经许可不得商用。
+## 数据库
+
+使用 drift（SQLite ORM），主要表结构：
+
+| 表 | 说明 |
+|----|------|
+| `Courses` | 课程（id, name, teacher, location, color, scheduleId） |
+| `TimeDetails` | 上课时间（courseId, dayOfWeek, startPeriod, duration, weeks, singleOrDouble） |
+| `Schedules` | 课表（id, name, isDefault, createdAt, displayedWeekdays, maxCoursesPerDay） |
+| `SemesterConfigs` | 学期配置（startDate, totalWeeks, isActive） |

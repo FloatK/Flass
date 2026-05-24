@@ -285,6 +285,47 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   // AppBar actions
   // ---------------------------------------------------------------------------
 
+  void _showThemeSettingsOverlay(BuildContext pageContext) {
+    late OverlayEntry entry;
+    bool isDragging = false;
+
+    entry = OverlayEntry(
+      builder: (ctx) {
+        return Stack(
+          children: [
+            // Custom barrier with controllable opacity
+            GestureDetector(
+              onTap: () {
+                entry.remove();
+              },
+              child: AnimatedOpacity(
+                opacity: isDragging ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(color: Colors.black54),
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ThemeSettingsDialog(
+                  onDragChanged: (v) {
+                    isDragging = v;
+                    entry.markNeedsBuild();
+                  },
+                  onClose: () {
+                    entry.remove();
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(pageContext).insert(entry);
+  }
+
   void _handleAppBarAction(BuildContext context, ActionItem item) {
     final current = ref.read(currentWeekProvider);
     final total = _getTotalWeeks();
@@ -307,10 +348,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
       case ActionItem.selectTimetable:
         context.push('/schedules');
       case ActionItem.themeSettings:
-        showDialog(
-          context: context,
-          builder: (_) => const ThemeSettingsDialog(),
-        );
+        _showThemeSettingsOverlay(context);
       case ActionItem.swapCourse:
         final courses = ref.read(courseListProvider).valueOrNull ?? [];
         final semester = ref.read(activeSemesterProvider).valueOrNull;
