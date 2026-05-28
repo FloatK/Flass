@@ -20,21 +20,24 @@ final courseRepositoryProvider = Provider<CourseRepository>.internal(
   allTransitiveDependencies: null,
 );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef CourseRepositoryRef = ProviderRef<CourseRepository>;
-String _$courseListHash() => r'2463badb2c5043c687ec74d0f91b4ff3de5a6ca8';
+String _$courseListHash() => r'c70be3cc509df9e7224f130db6d07b92ae26b00c';
 
 /// See also [CourseList].
 @ProviderFor(CourseList)
 final courseListProvider =
     AutoDisposeStreamNotifierProvider<CourseList, List<Course>>.internal(
-  CourseList.new,
-  name: r'courseListProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$courseListHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      CourseList.new,
+      name: r'courseListProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$courseListHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$CourseList = AutoDisposeStreamNotifier<List<Course>>;
 // ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

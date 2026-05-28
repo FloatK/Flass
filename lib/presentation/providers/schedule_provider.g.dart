@@ -21,6 +21,8 @@ final scheduleRepositoryProvider = Provider<ScheduleRepository>.internal(
   allTransitiveDependencies: null,
 );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef ScheduleRepositoryRef = ProviderRef<ScheduleRepository>;
 String _$scheduleListHash() => r'63a9e159584bfa1f26eac603ee8a785939730781';
 
@@ -29,12 +31,15 @@ String _$scheduleListHash() => r'63a9e159584bfa1f26eac603ee8a785939730781';
 final scheduleListProvider = FutureProvider<List<Schedule>>.internal(
   scheduleList,
   name: r'scheduleListProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$scheduleListHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$scheduleListHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef ScheduleListRef = FutureProviderRef<List<Schedule>>;
 String _$currentScheduleHash() => r'0869ee9223933306b3b9eb1a83032ef973a6e004';
 
@@ -42,15 +47,15 @@ String _$currentScheduleHash() => r'0869ee9223933306b3b9eb1a83032ef973a6e004';
 @ProviderFor(CurrentSchedule)
 final currentScheduleProvider =
     AsyncNotifierProvider<CurrentSchedule, Schedule>.internal(
-  CurrentSchedule.new,
-  name: r'currentScheduleProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$currentScheduleHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      CurrentSchedule.new,
+      name: r'currentScheduleProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$currentScheduleHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$CurrentSchedule = AsyncNotifier<Schedule>;
 // ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

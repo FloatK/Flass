@@ -27,13 +27,34 @@ class WeekSchedulePage extends ConsumerStatefulWidget {
 }
 
 class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
-  int _weekOffset = 0;
+  late final PageController _pageController;
+  int _displayedWeek = 1;  // Updated by PageController listener
   List<ActionItem> _appBarActionItems = [];
 
   @override
   void initState() {
     super.initState();
+    final currentWeek = ref.read(currentWeekProvider);
+    _pageController = PageController(initialPage: currentWeek - 1);
+    _displayedWeek = currentWeek;
+    _pageController.addListener(_onPageScroll);
     _loadAppBarConfig();
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(_onPageScroll);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageScroll() {
+    final page = _pageController.page;
+    if (page == null) return;
+    final newWeek = (page.round() + 1).clamp(1, _getTotalWeeks());
+    if (newWeek != _displayedWeek) {
+      setState(() => _displayedWeek = newWeek);
+    }
   }
 
   Future<void> _loadAppBarConfig() async {
@@ -48,8 +69,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   }
 
   int _getDisplayedWeek() {
-    final currentWeek = ref.read(currentWeekProvider);
-    return (currentWeek + _weekOffset).clamp(1, _getTotalWeeks());
+    return _displayedWeek;
   }
 
   List<int> _getDisplayedWeekdays() {
@@ -72,12 +92,12 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
 
     final semester = semesterAsync.valueOrNull;
     final totalWeeks = semester?.totalWeeks ?? 16;
-    final displayedWeek = (currentWeek + _weekOffset).clamp(1, totalWeeks);
+    final displayedWeek = _displayedWeek;
     final isCurrentWeek = displayedWeek == currentWeek;
 
     return Scaffold(
       appBar: _buildAppBar(semester, displayedWeek, currentWeek, isCurrentWeek),
-      body: _buildBody(semesterAsync, courseListAsync, semester, displayedWeek),
+      body: _buildBody(semesterAsync, courseListAsync, semester, totalWeeks),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Vibrate.light();
@@ -175,7 +195,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     AsyncValue<SemesterConfigData?> semesterAsync,
     AsyncValue<List<Course>> courseListAsync,
     SemesterConfigData? semester,
-    int displayedWeek,
+    int totalWeeks,
   ) {
     return semesterAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -204,16 +224,20 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
             final schedule =
                 ref.read(currentScheduleProvider).valueOrNull;
             final periodCount = schedule?.maxCoursesPerDay ?? 12;
-            return CourseGridWidget(
-              courses: courses,
-              displayedWeek: displayedWeek,
-              totalWeeks: semester.totalWeeks,
-              periodCount: periodCount,
-              displayedWeekdays: _getDisplayedWeekdays(),
-              semesterStart: DateTime.parse(semester.startDate),
-              onCourseTap: (course) => _showCourseDetail(course),
-              onSwipeWeek: (direction) {
-                setState(() => _weekOffset += direction);
+            return PageView.builder(
+              controller: _pageController,
+              itemCount: totalWeeks,
+              itemBuilder: (context, index) {
+                final week = index + 1;
+                return CourseGridWidget(
+                  courses: courses,
+                  displayedWeek: week,
+                  totalWeeks: totalWeeks,
+                  periodCount: periodCount,
+                  displayedWeekdays: _getDisplayedWeekdays(),
+                  semesterStart: DateTime.parse(semester.startDate),
+                  onCourseTap: (course) => _showCourseDetail(course),
+                );
               },
             );
           },
@@ -318,10 +342,6 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   }
 
   void _handleAppBarAction(BuildContext context, ActionItem item) {
-    final current = ref.read(currentWeekProvider);
-    final total = _getTotalWeeks();
-    final displayed = (current + _weekOffset).clamp(1, total);
-
     switch (item) {
       case ActionItem.importTimetable:
         context.push('/import');
@@ -331,11 +351,22 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
       case ActionItem.importJson:
         ImportFromTextDialog.show(context);
       case ActionItem.previousWeek:
-        if (displayed > 1) setState(() => _weekOffset--);
+        _pageController.previousPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       case ActionItem.nextWeek:
-        if (displayed < total) setState(() => _weekOffset++);
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       case ActionItem.goToCurrentWeek:
-        setState(() => _weekOffset = 0);
+        final currentWeek = ref.read(currentWeekProvider);
+        _pageController.animateToPage(
+          currentWeek - 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       case ActionItem.selectTimetable:
         context.push('/schedules');
       case ActionItem.themeSettings:
@@ -347,7 +378,7 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
           SwapCourseDialog.show(
             context,
             courses,
-            displayed,
+            _displayedWeek,
             DateTime.parse(semester.startDate),
           );
         }
@@ -363,8 +394,11 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
         displayedWeek: _getDisplayedWeek(),
         totalWeeks: _getTotalWeeks(),
         onWeekChanged: (week) {
-          final current = ref.read(currentWeekProvider);
-          setState(() => _weekOffset = week - current);
+          _pageController.animateToPage(
+            week - 1,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
         },
         appBarItems: _appBarActionItems,
         onConfigChanged: () {

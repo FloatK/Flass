@@ -12,7 +12,8 @@ part of 'schedule.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Schedule _$ScheduleFromJson(Map<String, dynamic> json) {
   return _Schedule.fromJson(json);
@@ -27,8 +28,12 @@ mixin _$Schedule {
   List<int> get displayedWeekdays => throw _privateConstructorUsedError;
   int get maxCoursesPerDay => throw _privateConstructorUsedError;
 
+  /// Serializes this Schedule to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Schedule
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $ScheduleCopyWith<Schedule> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -38,13 +43,14 @@ abstract class $ScheduleCopyWith<$Res> {
   factory $ScheduleCopyWith(Schedule value, $Res Function(Schedule) then) =
       _$ScheduleCopyWithImpl<$Res, Schedule>;
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isDefault,
-      DateTime createdAt,
-      List<int> displayedWeekdays,
-      int maxCoursesPerDay});
+  $Res call({
+    String id,
+    String name,
+    bool isDefault,
+    DateTime createdAt,
+    List<int> displayedWeekdays,
+    int maxCoursesPerDay,
+  });
 }
 
 /// @nodoc
@@ -57,6 +63,8 @@ class _$ScheduleCopyWithImpl<$Res, $Val extends Schedule>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Schedule
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -67,32 +75,35 @@ class _$ScheduleCopyWithImpl<$Res, $Val extends Schedule>
     Object? displayedWeekdays = null,
     Object? maxCoursesPerDay = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isDefault: null == isDefault
-          ? _value.isDefault
-          : isDefault // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      displayedWeekdays: null == displayedWeekdays
-          ? _value.displayedWeekdays
-          : displayedWeekdays // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      maxCoursesPerDay: null == maxCoursesPerDay
-          ? _value.maxCoursesPerDay
-          : maxCoursesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            isDefault: null == isDefault
+                ? _value.isDefault
+                : isDefault // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            displayedWeekdays: null == displayedWeekdays
+                ? _value.displayedWeekdays
+                : displayedWeekdays // ignore: cast_nullable_to_non_nullable
+                      as List<int>,
+            maxCoursesPerDay: null == maxCoursesPerDay
+                ? _value.maxCoursesPerDay
+                : maxCoursesPerDay // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -100,17 +111,19 @@ class _$ScheduleCopyWithImpl<$Res, $Val extends Schedule>
 abstract class _$$ScheduleImplCopyWith<$Res>
     implements $ScheduleCopyWith<$Res> {
   factory _$$ScheduleImplCopyWith(
-          _$ScheduleImpl value, $Res Function(_$ScheduleImpl) then) =
-      __$$ScheduleImplCopyWithImpl<$Res>;
+    _$ScheduleImpl value,
+    $Res Function(_$ScheduleImpl) then,
+  ) = __$$ScheduleImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isDefault,
-      DateTime createdAt,
-      List<int> displayedWeekdays,
-      int maxCoursesPerDay});
+  $Res call({
+    String id,
+    String name,
+    bool isDefault,
+    DateTime createdAt,
+    List<int> displayedWeekdays,
+    int maxCoursesPerDay,
+  });
 }
 
 /// @nodoc
@@ -118,9 +131,12 @@ class __$$ScheduleImplCopyWithImpl<$Res>
     extends _$ScheduleCopyWithImpl<$Res, _$ScheduleImpl>
     implements _$$ScheduleImplCopyWith<$Res> {
   __$$ScheduleImplCopyWithImpl(
-      _$ScheduleImpl _value, $Res Function(_$ScheduleImpl) _then)
-      : super(_value, _then);
+    _$ScheduleImpl _value,
+    $Res Function(_$ScheduleImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Schedule
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -131,46 +147,48 @@ class __$$ScheduleImplCopyWithImpl<$Res>
     Object? displayedWeekdays = null,
     Object? maxCoursesPerDay = null,
   }) {
-    return _then(_$ScheduleImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isDefault: null == isDefault
-          ? _value.isDefault
-          : isDefault // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      displayedWeekdays: null == displayedWeekdays
-          ? _value._displayedWeekdays
-          : displayedWeekdays // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      maxCoursesPerDay: null == maxCoursesPerDay
-          ? _value.maxCoursesPerDay
-          : maxCoursesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
+    return _then(
+      _$ScheduleImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        isDefault: null == isDefault
+            ? _value.isDefault
+            : isDefault // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        displayedWeekdays: null == displayedWeekdays
+            ? _value._displayedWeekdays
+            : displayedWeekdays // ignore: cast_nullable_to_non_nullable
+                  as List<int>,
+        maxCoursesPerDay: null == maxCoursesPerDay
+            ? _value.maxCoursesPerDay
+            : maxCoursesPerDay // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ScheduleImpl implements _Schedule {
-  const _$ScheduleImpl(
-      {required this.id,
-      required this.name,
-      this.isDefault = false,
-      required this.createdAt,
-      final List<int> displayedWeekdays = const [1, 2, 3, 4, 5],
-      this.maxCoursesPerDay = 12})
-      : _displayedWeekdays = displayedWeekdays;
+  const _$ScheduleImpl({
+    required this.id,
+    required this.name,
+    this.isDefault = false,
+    required this.createdAt,
+    final List<int> displayedWeekdays = const [1, 2, 3, 4, 5],
+    this.maxCoursesPerDay = 12,
+  }) : _displayedWeekdays = displayedWeekdays;
 
   factory _$ScheduleImpl.fromJson(Map<String, dynamic> json) =>
       _$$ScheduleImplFromJson(json);
@@ -214,24 +232,29 @@ class _$ScheduleImpl implements _Schedule {
                 other.isDefault == isDefault) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
-            const DeepCollectionEquality()
-                .equals(other._displayedWeekdays, _displayedWeekdays) &&
+            const DeepCollectionEquality().equals(
+              other._displayedWeekdays,
+              _displayedWeekdays,
+            ) &&
             (identical(other.maxCoursesPerDay, maxCoursesPerDay) ||
                 other.maxCoursesPerDay == maxCoursesPerDay));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      isDefault,
-      createdAt,
-      const DeepCollectionEquality().hash(_displayedWeekdays),
-      maxCoursesPerDay);
+    runtimeType,
+    id,
+    name,
+    isDefault,
+    createdAt,
+    const DeepCollectionEquality().hash(_displayedWeekdays),
+    maxCoursesPerDay,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Schedule
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$ScheduleImplCopyWith<_$ScheduleImpl> get copyWith =>
@@ -239,20 +262,19 @@ class _$ScheduleImpl implements _Schedule {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ScheduleImplToJson(
-      this,
-    );
+    return _$$ScheduleImplToJson(this);
   }
 }
 
 abstract class _Schedule implements Schedule {
-  const factory _Schedule(
-      {required final String id,
-      required final String name,
-      final bool isDefault,
-      required final DateTime createdAt,
-      final List<int> displayedWeekdays,
-      final int maxCoursesPerDay}) = _$ScheduleImpl;
+  const factory _Schedule({
+    required final String id,
+    required final String name,
+    final bool isDefault,
+    required final DateTime createdAt,
+    final List<int> displayedWeekdays,
+    final int maxCoursesPerDay,
+  }) = _$ScheduleImpl;
 
   factory _Schedule.fromJson(Map<String, dynamic> json) =
       _$ScheduleImpl.fromJson;
@@ -269,8 +291,11 @@ abstract class _Schedule implements Schedule {
   List<int> get displayedWeekdays;
   @override
   int get maxCoursesPerDay;
+
+  /// Create a copy of Schedule
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ScheduleImplCopyWith<_$ScheduleImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

@@ -12,7 +12,8 @@ part of 'course.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 Course _$CourseFromJson(Map<String, dynamic> json) {
   return _Course.fromJson(json);
@@ -27,8 +28,12 @@ mixin _$Course {
   int get color => throw _privateConstructorUsedError;
   List<TimeDetail> get timeDetails => throw _privateConstructorUsedError;
 
+  /// Serializes this Course to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Course
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $CourseCopyWith<Course> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -37,13 +42,14 @@ abstract class $CourseCopyWith<$Res> {
   factory $CourseCopyWith(Course value, $Res Function(Course) then) =
       _$CourseCopyWithImpl<$Res, Course>;
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      String teacher,
-      String? location,
-      int color,
-      List<TimeDetail> timeDetails});
+  $Res call({
+    String id,
+    String name,
+    String teacher,
+    String? location,
+    int color,
+    List<TimeDetail> timeDetails,
+  });
 }
 
 /// @nodoc
@@ -56,6 +62,8 @@ class _$CourseCopyWithImpl<$Res, $Val extends Course>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of Course
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -66,49 +74,54 @@ class _$CourseCopyWithImpl<$Res, $Val extends Course>
     Object? color = null,
     Object? timeDetails = null,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      teacher: null == teacher
-          ? _value.teacher
-          : teacher // ignore: cast_nullable_to_non_nullable
-              as String,
-      location: freezed == location
-          ? _value.location
-          : location // ignore: cast_nullable_to_non_nullable
-              as String?,
-      color: null == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as int,
-      timeDetails: null == timeDetails
-          ? _value.timeDetails
-          : timeDetails // ignore: cast_nullable_to_non_nullable
-              as List<TimeDetail>,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            teacher: null == teacher
+                ? _value.teacher
+                : teacher // ignore: cast_nullable_to_non_nullable
+                      as String,
+            location: freezed == location
+                ? _value.location
+                : location // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            color: null == color
+                ? _value.color
+                : color // ignore: cast_nullable_to_non_nullable
+                      as int,
+            timeDetails: null == timeDetails
+                ? _value.timeDetails
+                : timeDetails // ignore: cast_nullable_to_non_nullable
+                      as List<TimeDetail>,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$CourseImplCopyWith<$Res> implements $CourseCopyWith<$Res> {
   factory _$$CourseImplCopyWith(
-          _$CourseImpl value, $Res Function(_$CourseImpl) then) =
-      __$$CourseImplCopyWithImpl<$Res>;
+    _$CourseImpl value,
+    $Res Function(_$CourseImpl) then,
+  ) = __$$CourseImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      String teacher,
-      String? location,
-      int color,
-      List<TimeDetail> timeDetails});
+  $Res call({
+    String id,
+    String name,
+    String teacher,
+    String? location,
+    int color,
+    List<TimeDetail> timeDetails,
+  });
 }
 
 /// @nodoc
@@ -116,9 +129,12 @@ class __$$CourseImplCopyWithImpl<$Res>
     extends _$CourseCopyWithImpl<$Res, _$CourseImpl>
     implements _$$CourseImplCopyWith<$Res> {
   __$$CourseImplCopyWithImpl(
-      _$CourseImpl _value, $Res Function(_$CourseImpl) _then)
-      : super(_value, _then);
+    _$CourseImpl _value,
+    $Res Function(_$CourseImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of Course
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -129,46 +145,48 @@ class __$$CourseImplCopyWithImpl<$Res>
     Object? color = null,
     Object? timeDetails = null,
   }) {
-    return _then(_$CourseImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      teacher: null == teacher
-          ? _value.teacher
-          : teacher // ignore: cast_nullable_to_non_nullable
-              as String,
-      location: freezed == location
-          ? _value.location
-          : location // ignore: cast_nullable_to_non_nullable
-              as String?,
-      color: null == color
-          ? _value.color
-          : color // ignore: cast_nullable_to_non_nullable
-              as int,
-      timeDetails: null == timeDetails
-          ? _value._timeDetails
-          : timeDetails // ignore: cast_nullable_to_non_nullable
-              as List<TimeDetail>,
-    ));
+    return _then(
+      _$CourseImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        teacher: null == teacher
+            ? _value.teacher
+            : teacher // ignore: cast_nullable_to_non_nullable
+                  as String,
+        location: freezed == location
+            ? _value.location
+            : location // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        color: null == color
+            ? _value.color
+            : color // ignore: cast_nullable_to_non_nullable
+                  as int,
+        timeDetails: null == timeDetails
+            ? _value._timeDetails
+            : timeDetails // ignore: cast_nullable_to_non_nullable
+                  as List<TimeDetail>,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$CourseImpl implements _Course {
-  const _$CourseImpl(
-      {required this.id,
-      required this.name,
-      required this.teacher,
-      this.location,
-      this.color = 0xFF2196F3,
-      final List<TimeDetail> timeDetails = const []})
-      : _timeDetails = timeDetails;
+  const _$CourseImpl({
+    required this.id,
+    required this.name,
+    required this.teacher,
+    this.location,
+    this.color = 0xFF2196F3,
+    final List<TimeDetail> timeDetails = const [],
+  }) : _timeDetails = timeDetails;
 
   factory _$CourseImpl.fromJson(Map<String, dynamic> json) =>
       _$$CourseImplFromJson(json);
@@ -209,16 +227,27 @@ class _$CourseImpl implements _Course {
             (identical(other.location, location) ||
                 other.location == location) &&
             (identical(other.color, color) || other.color == color) &&
-            const DeepCollectionEquality()
-                .equals(other._timeDetails, _timeDetails));
+            const DeepCollectionEquality().equals(
+              other._timeDetails,
+              _timeDetails,
+            ));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, teacher, location,
-      color, const DeepCollectionEquality().hash(_timeDetails));
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    name,
+    teacher,
+    location,
+    color,
+    const DeepCollectionEquality().hash(_timeDetails),
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Course
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CourseImplCopyWith<_$CourseImpl> get copyWith =>
@@ -226,20 +255,19 @@ class _$CourseImpl implements _Course {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$CourseImplToJson(
-      this,
-    );
+    return _$$CourseImplToJson(this);
   }
 }
 
 abstract class _Course implements Course {
-  const factory _Course(
-      {required final String id,
-      required final String name,
-      required final String teacher,
-      final String? location,
-      final int color,
-      final List<TimeDetail> timeDetails}) = _$CourseImpl;
+  const factory _Course({
+    required final String id,
+    required final String name,
+    required final String teacher,
+    final String? location,
+    final int color,
+    final List<TimeDetail> timeDetails,
+  }) = _$CourseImpl;
 
   factory _Course.fromJson(Map<String, dynamic> json) = _$CourseImpl.fromJson;
 
@@ -255,8 +283,11 @@ abstract class _Course implements Course {
   int get color;
   @override
   List<TimeDetail> get timeDetails;
+
+  /// Create a copy of Course
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CourseImplCopyWith<_$CourseImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -273,8 +304,12 @@ mixin _$TimeDetail {
   List<int> get weeks => throw _privateConstructorUsedError;
   String get singleOrDouble => throw _privateConstructorUsedError;
 
+  /// Serializes this TimeDetail to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of TimeDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $TimeDetailCopyWith<TimeDetail> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -282,15 +317,17 @@ mixin _$TimeDetail {
 /// @nodoc
 abstract class $TimeDetailCopyWith<$Res> {
   factory $TimeDetailCopyWith(
-          TimeDetail value, $Res Function(TimeDetail) then) =
-      _$TimeDetailCopyWithImpl<$Res, TimeDetail>;
+    TimeDetail value,
+    $Res Function(TimeDetail) then,
+  ) = _$TimeDetailCopyWithImpl<$Res, TimeDetail>;
   @useResult
-  $Res call(
-      {int dayOfWeek,
-      int startPeriod,
-      int duration,
-      List<int> weeks,
-      String singleOrDouble});
+  $Res call({
+    int dayOfWeek,
+    int startPeriod,
+    int duration,
+    List<int> weeks,
+    String singleOrDouble,
+  });
 }
 
 /// @nodoc
@@ -303,6 +340,8 @@ class _$TimeDetailCopyWithImpl<$Res, $Val extends TimeDetail>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of TimeDetail
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -312,28 +351,31 @@ class _$TimeDetailCopyWithImpl<$Res, $Val extends TimeDetail>
     Object? weeks = null,
     Object? singleOrDouble = null,
   }) {
-    return _then(_value.copyWith(
-      dayOfWeek: null == dayOfWeek
-          ? _value.dayOfWeek
-          : dayOfWeek // ignore: cast_nullable_to_non_nullable
-              as int,
-      startPeriod: null == startPeriod
-          ? _value.startPeriod
-          : startPeriod // ignore: cast_nullable_to_non_nullable
-              as int,
-      duration: null == duration
-          ? _value.duration
-          : duration // ignore: cast_nullable_to_non_nullable
-              as int,
-      weeks: null == weeks
-          ? _value.weeks
-          : weeks // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      singleOrDouble: null == singleOrDouble
-          ? _value.singleOrDouble
-          : singleOrDouble // ignore: cast_nullable_to_non_nullable
-              as String,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            dayOfWeek: null == dayOfWeek
+                ? _value.dayOfWeek
+                : dayOfWeek // ignore: cast_nullable_to_non_nullable
+                      as int,
+            startPeriod: null == startPeriod
+                ? _value.startPeriod
+                : startPeriod // ignore: cast_nullable_to_non_nullable
+                      as int,
+            duration: null == duration
+                ? _value.duration
+                : duration // ignore: cast_nullable_to_non_nullable
+                      as int,
+            weeks: null == weeks
+                ? _value.weeks
+                : weeks // ignore: cast_nullable_to_non_nullable
+                      as List<int>,
+            singleOrDouble: null == singleOrDouble
+                ? _value.singleOrDouble
+                : singleOrDouble // ignore: cast_nullable_to_non_nullable
+                      as String,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -341,16 +383,18 @@ class _$TimeDetailCopyWithImpl<$Res, $Val extends TimeDetail>
 abstract class _$$TimeDetailImplCopyWith<$Res>
     implements $TimeDetailCopyWith<$Res> {
   factory _$$TimeDetailImplCopyWith(
-          _$TimeDetailImpl value, $Res Function(_$TimeDetailImpl) then) =
-      __$$TimeDetailImplCopyWithImpl<$Res>;
+    _$TimeDetailImpl value,
+    $Res Function(_$TimeDetailImpl) then,
+  ) = __$$TimeDetailImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {int dayOfWeek,
-      int startPeriod,
-      int duration,
-      List<int> weeks,
-      String singleOrDouble});
+  $Res call({
+    int dayOfWeek,
+    int startPeriod,
+    int duration,
+    List<int> weeks,
+    String singleOrDouble,
+  });
 }
 
 /// @nodoc
@@ -358,9 +402,12 @@ class __$$TimeDetailImplCopyWithImpl<$Res>
     extends _$TimeDetailCopyWithImpl<$Res, _$TimeDetailImpl>
     implements _$$TimeDetailImplCopyWith<$Res> {
   __$$TimeDetailImplCopyWithImpl(
-      _$TimeDetailImpl _value, $Res Function(_$TimeDetailImpl) _then)
-      : super(_value, _then);
+    _$TimeDetailImpl _value,
+    $Res Function(_$TimeDetailImpl) _then,
+  ) : super(_value, _then);
 
+  /// Create a copy of TimeDetail
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -370,41 +417,43 @@ class __$$TimeDetailImplCopyWithImpl<$Res>
     Object? weeks = null,
     Object? singleOrDouble = null,
   }) {
-    return _then(_$TimeDetailImpl(
-      dayOfWeek: null == dayOfWeek
-          ? _value.dayOfWeek
-          : dayOfWeek // ignore: cast_nullable_to_non_nullable
-              as int,
-      startPeriod: null == startPeriod
-          ? _value.startPeriod
-          : startPeriod // ignore: cast_nullable_to_non_nullable
-              as int,
-      duration: null == duration
-          ? _value.duration
-          : duration // ignore: cast_nullable_to_non_nullable
-              as int,
-      weeks: null == weeks
-          ? _value._weeks
-          : weeks // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      singleOrDouble: null == singleOrDouble
-          ? _value.singleOrDouble
-          : singleOrDouble // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
+    return _then(
+      _$TimeDetailImpl(
+        dayOfWeek: null == dayOfWeek
+            ? _value.dayOfWeek
+            : dayOfWeek // ignore: cast_nullable_to_non_nullable
+                  as int,
+        startPeriod: null == startPeriod
+            ? _value.startPeriod
+            : startPeriod // ignore: cast_nullable_to_non_nullable
+                  as int,
+        duration: null == duration
+            ? _value.duration
+            : duration // ignore: cast_nullable_to_non_nullable
+                  as int,
+        weeks: null == weeks
+            ? _value._weeks
+            : weeks // ignore: cast_nullable_to_non_nullable
+                  as List<int>,
+        singleOrDouble: null == singleOrDouble
+            ? _value.singleOrDouble
+            : singleOrDouble // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$TimeDetailImpl implements _TimeDetail {
-  const _$TimeDetailImpl(
-      {required this.dayOfWeek,
-      required this.startPeriod,
-      this.duration = 1,
-      final List<int> weeks = const [],
-      this.singleOrDouble = 'all'})
-      : _weeks = weeks;
+  const _$TimeDetailImpl({
+    required this.dayOfWeek,
+    required this.startPeriod,
+    this.duration = 1,
+    final List<int> weeks = const [],
+    this.singleOrDouble = 'all',
+  }) : _weeks = weeks;
 
   factory _$TimeDetailImpl.fromJson(Map<String, dynamic> json) =>
       _$$TimeDetailImplFromJson(json);
@@ -450,12 +499,20 @@ class _$TimeDetailImpl implements _TimeDetail {
                 other.singleOrDouble == singleOrDouble));
   }
 
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, dayOfWeek, startPeriod, duration,
-      const DeepCollectionEquality().hash(_weeks), singleOrDouble);
+  int get hashCode => Object.hash(
+    runtimeType,
+    dayOfWeek,
+    startPeriod,
+    duration,
+    const DeepCollectionEquality().hash(_weeks),
+    singleOrDouble,
+  );
 
-  @JsonKey(ignore: true)
+  /// Create a copy of TimeDetail
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$TimeDetailImplCopyWith<_$TimeDetailImpl> get copyWith =>
@@ -463,19 +520,18 @@ class _$TimeDetailImpl implements _TimeDetail {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$TimeDetailImplToJson(
-      this,
-    );
+    return _$$TimeDetailImplToJson(this);
   }
 }
 
 abstract class _TimeDetail implements TimeDetail {
-  const factory _TimeDetail(
-      {required final int dayOfWeek,
-      required final int startPeriod,
-      final int duration,
-      final List<int> weeks,
-      final String singleOrDouble}) = _$TimeDetailImpl;
+  const factory _TimeDetail({
+    required final int dayOfWeek,
+    required final int startPeriod,
+    final int duration,
+    final List<int> weeks,
+    final String singleOrDouble,
+  }) = _$TimeDetailImpl;
 
   factory _TimeDetail.fromJson(Map<String, dynamic> json) =
       _$TimeDetailImpl.fromJson;
@@ -490,8 +546,11 @@ abstract class _TimeDetail implements TimeDetail {
   List<int> get weeks;
   @override
   String get singleOrDouble;
+
+  /// Create a copy of TimeDetail
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TimeDetailImplCopyWith<_$TimeDetailImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

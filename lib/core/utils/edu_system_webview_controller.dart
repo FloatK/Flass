@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../data/datasources/edu_parser.dart';
+import '../../data/datasources/edu_parser_qg.dart';
 import '../../data/datasources/edu_parser_qz.dart';
+import '../../data/datasources/edu_parser_zf.dart';
 import 'schedule_webview_helper.dart';
 
 /// 教务系统 WebView 控制器，封装 WebView 初始化、状态管理和 HTML 解析。
 class EduSystemWebViewController {
   final WebViewController webView;
   final ScheduleWebViewHelper helper;
-  final EduParser parser = const QiangZhiEduParser();
 
   bool _isLoading = false;
   bool _isParsing = false;
@@ -25,6 +26,17 @@ class EduSystemWebViewController {
     required this.webView,
     required this.helper,
   });
+
+  /// 初始化解析器注册表（应用启动时调用一次）。
+  static void initParserRegistry() {
+    final registry = EduParserRegistry.instance;
+    // 避免重复注册
+    if (registry.getAll().isEmpty) {
+      registry.register(const QiangZhiEduParser());
+      registry.register(const ZhengFangEduParser());
+      registry.register(const QingGuoEduParser());
+    }
+  }
 
   /// 创建控制器。[onStateChanged] 会在状态变化时被调用，用于触发 UI 刷新。
   factory EduSystemWebViewController.create({
@@ -72,8 +84,15 @@ class EduSystemWebViewController {
   }
 
   /// 从 WebView 或粘贴的 HTML 解析课程。
+  ///
+  /// [pastedHtml]：粘贴的 HTML 源代码（桌面端）。
+  /// [selectedParser]：手动选择的解析器（优先使用）。
+  ///
   /// 返回解析出的课程列表，若无课程则返回空列表。
-  Future<List<ParsedCourse>> parseSchedule({String? pastedHtml}) async {
+  Future<List<ParsedCourse>> parseSchedule({
+    String? pastedHtml,
+    EduParser? selectedParser,
+  }) async {
     _isParsing = true;
     _parsedCourses = [];
     _onStateChanged?.call();
@@ -90,6 +109,21 @@ class EduSystemWebViewController {
             '';
       }
 
+      if (html.isEmpty) {
+        _isParsing = false;
+        _onStateChanged?.call();
+        return [];
+      }
+
+      // 选择解析器：手动选择 > 自动识别 > 默认（强智）
+      EduParser parser;
+      if (selectedParser != null) {
+        parser = selectedParser;
+      } else {
+        parser = EduParserRegistry.instance.detectFromHtml(html) ??
+            const QiangZhiEduParser();
+      }
+
       _parsedCourses = parser.parse(html);
       _isParsing = false;
       _onStateChanged?.call();
@@ -99,6 +133,11 @@ class EduSystemWebViewController {
       _onStateChanged?.call();
       rethrow;
     }
+  }
+
+  /// 获取当前可用的解析器列表。
+  List<EduParser> getAvailableParsers() {
+    return EduParserRegistry.instance.getAll();
   }
 
   void dispose() {

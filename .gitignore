@@ -48,4 +48,5 @@ dbg.txt
 
 # Claude Code / Sisyphus
 .claude/
+.omo/
 .sisyphus/

@@ -16,7 +16,8 @@ class CourseSlot {
 
 /// 课表周视图网格组件。
 ///
-/// 显示一周的课程表格，支持左右滑动切换周次、点击课程查看详情。
+/// 显示一周的课程表格，支持点击课程查看详情。
+/// 注意：周次切换由外部 PageView 处理，本组件不处理滑动手势。
 class CourseGridWidget extends ConsumerWidget {
   final List<Course> courses;
   final int displayedWeek;
@@ -25,7 +26,6 @@ class CourseGridWidget extends ConsumerWidget {
   final List<int> displayedWeekdays;
   final DateTime semesterStart;
   final void Function(Course course)? onCourseTap;
-  final void Function(int direction)? onSwipeWeek;
 
   const CourseGridWidget({
     super.key,
@@ -36,7 +36,6 @@ class CourseGridWidget extends ConsumerWidget {
     required this.displayedWeekdays,
     required this.semesterStart,
     this.onCourseTap,
-    this.onSwipeWeek,
   });
 
   static const double _periodLabelWidth = 40.0;
@@ -52,27 +51,17 @@ class CourseGridWidget extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gridBgColor = settings.getGridBackgroundColor(colorScheme, isDark);
 
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity == null) return;
-        if (details.primaryVelocity! < -100 && displayedWeek < totalWeeks) {
-          onSwipeWeek?.call(1);
-        } else if (details.primaryVelocity! > 100 && displayedWeek > 1) {
-          onSwipeWeek?.call(-1);
-        }
-      },
-      child: Container(
-        color: gridBgColor,
-        child: Column(
-          children: [
-            _buildHeader(context, ref, weekStart, todayStart),
-            Expanded(
-              child: SingleChildScrollView(
-                child: _buildGridBody(context, ref),
-              ),
+    return Container(
+      color: gridBgColor,
+      child: Column(
+        children: [
+          _buildHeader(context, ref, weekStart, todayStart),
+          Expanded(
+            child: SingleChildScrollView(
+              child: _buildGridBody(context, ref),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

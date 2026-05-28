@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'app.dart';
+import 'core/utils/edu_system_webview_controller.dart';
 import 'data/datasources/database.dart';
 import 'data/datasources/sample_data.dart';
 import 'data/repositories/course_repository_impl.dart';
@@ -19,6 +20,9 @@ import 'presentation/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化教务系统解析器注册表
+  EduSystemWebViewController.initParserRegistry();
 
   final appDir = await getApplicationDocumentsDirectory();
   final dbPath = p.join(appDir.path, 'flass.db');

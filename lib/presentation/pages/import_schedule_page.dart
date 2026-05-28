@@ -12,6 +12,7 @@ import '../../core/utils/ui_utils.dart';
 import '../../core/utils/vibrate.dart';
 import '../../data/datasources/edu_parser.dart';
 import '../utils/import_helper.dart';
+import '../widgets/edu_system_selection_dialog.dart';
 
 class ImportSchedulePage extends ConsumerStatefulWidget {
   const ImportSchedulePage({super.key});
@@ -82,7 +83,22 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     }
 
     try {
-      final parsed = await _eduController!.parseSchedule(pastedHtml: pastedHtml);
+      // 第一次尝试：自动识别解析器
+      var parsed = await _eduController!.parseSchedule(pastedHtml: pastedHtml);
+
+      if (!mounted) return;
+
+      // 如果自动识别失败（0个课程），让用户手动选择解析器
+      if (parsed.isEmpty && pastedHtml != null) {
+        final selectedParser = await _showParserSelectionDialog();
+        if (selectedParser != null && mounted) {
+          // 使用手动选择的解析器重试
+          parsed = await _eduController!.parseSchedule(
+            pastedHtml: pastedHtml,
+            selectedParser: selectedParser,
+          );
+        }
+      }
 
       if (!mounted) return;
 
@@ -96,6 +112,13 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
         showAppSnackBar(context, '${AppStrings.parseFailed}: $e', isError: true);
       }
     }
+  }
+
+  /// 显示解析器选择对话框。
+  Future<EduParser?> _showParserSelectionDialog() async {
+    final parsers = _eduController!.getAvailableParsers();
+    if (parsers.isEmpty) return null;
+    return EduSystemSelectionDialog.show(context, parsers);
   }
 
   void _showImportDialog(List<ParsedCourse> parsedCourses) {

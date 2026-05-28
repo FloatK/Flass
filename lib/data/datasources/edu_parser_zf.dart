@@ -4,23 +4,39 @@ import 'package:html/dom.dart' as dom;
 import '../../core/utils/week_utils.dart';
 import 'edu_parser.dart';
 
-/// Parser for 强智教务系统 schedule tables.
+/// Parser for 正方教务系统 schedule tables.
 ///
-/// Table has id="kbtable". Each cell contains div.kbcontent with:
-///   code<br>name<br><font title="老师">teacher</font><br>
-///   <font title="周次(节次)">weeks(周)[periods节]</font><br>
-///   [<font title="教室">location</font><br>]
-/// Multiple courses in one cell are separated by "---------------------"
-class QiangZhiEduParser extends EduParser {
-  const QiangZhiEduParser();
+/// 正方系统特征：
+/// - 表格 class 包含 "kbcontent"
+/// - 单元格使用 div 嵌套，包含课程名、教师、周次、教室等信息
+/// - 字段通常使用 <font> 标签或纯文本，以 <br> 分隔
+///
+/// 常见结构：
+/// ```html
+/// <table class="kbcontent">
+///   <tr>
+///     <td>
+///       <div>课程名<br>
+///         <font>教师</font><br>
+///         <font>周次(节次)</font><br>
+///         <font>教室</font>
+///       </div>
+///     </td>
+///   </tr>
+/// </table>
+/// ```
+class ZhengFangEduParser extends EduParser {
+  const ZhengFangEduParser();
 
   @override
-  String get systemName => '强智教务系统';
+  String get systemName => '正方教务系统';
 
   @override
   bool canParse(String html) {
-    // 强智系统特征：表格 id="kbtable"，单元格包含 div.kbcontent
-    return html.contains('id="kbtable"') || html.contains("id='kbtable'");
+    // 正方系统特征：class 包含 "kbcontent"，且有特定的表格结构
+    return html.contains('class="kbcontent"') ||
+        html.contains("class='kbcontent'") ||
+        (html.contains('kbcontent') && html.contains('kbcontent1'));
   }
 
   @override
@@ -28,41 +44,52 @@ class QiangZhiEduParser extends EduParser {
     final document = html_parser.parse(html);
     final courses = <ParsedCourse>[];
 
-    final table = document.querySelector('#kbtable');
-    if (table == null) return courses;
+    // 查找课表表格 - 正方系统通常使用 class="kbcontent"
+    final tables = document.querySelectorAll('table.kbcontent');
+    if (tables.isEmpty) {
+      // 备选：查找包含 kbcontent 的表格
+      final allTables = document.querySelectorAll('table');
+      for (final table in allTables) {
+        if (table.className.contains('kbcontent')) {
+          courses.addAll(_parseTable(table));
+        }
+      }
+      return courses;
+    }
 
+    for (final table in tables) {
+      courses.addAll(_parseTable(table));
+    }
+    return courses;
+  }
+
+  List<ParsedCourse> _parseTable(dom.Element table) {
+    final courses = <ParsedCourse>[];
     final tbody = table.querySelector('tbody') ?? table;
     final rows = tbody.querySelectorAll('tr');
     if (rows.length < 2) return courses;
 
-    // Skip header row (index 0). Each subsequent row is one "大节" block.
-    // Row 1 = 第一大节 → periods roughly (rowIdx-1)*2+1 to (rowIdx-1)*2+2
+    // 跳过表头行，每行对应一个时间段
     for (int rowIdx = 1; rowIdx < rows.length; rowIdx++) {
       final cells = rows[rowIdx].querySelectorAll('td, th');
-
       for (int colIdx = 0; colIdx < cells.length; colIdx++) {
-        // Skip first column (period label th)
+        // 跳过第一列（时间段标签）
         if (colIdx == 0) continue;
-
         final cell = cells[colIdx];
-        // Only match visible kbcontent, skip hidden kbcontent1
-        final divs = cell.querySelectorAll('.kbcontent');
-
-        for (final div in divs) {
-          final parsed = _parseCell(div, colIdx - 1, rowIdx - 1);
-          courses.addAll(parsed);
-        }
+        final parsed = _parseCell(cell, colIdx - 1, rowIdx - 1);
+        courses.addAll(parsed);
       }
     }
-
     return courses;
   }
 
-  List<ParsedCourse> _parseCell(dom.Element div, int dayIndex, int periodBlock) {
+  List<ParsedCourse> _parseCell(dom.Element cell, int dayIndex, int periodBlock) {
     final results = <ParsedCourse>[];
 
-    // Split by multi-course separator
-    final blocks = div.innerHtml.split('---------------------');
+    // 正方系统可能在一个单元格中包含多个课程（用分隔线隔开）
+    final html = cell.innerHtml;
+    final blocks = html.split(RegExp(r'-{5,}|<hr\s*/?>', caseSensitive: false));
+
     for (final block in blocks) {
       final trimmed = block.trim();
       if (trimmed.isEmpty || trimmed == '<br>') continue;
@@ -70,12 +97,11 @@ class QiangZhiEduParser extends EduParser {
       final course = _parseSingleBlock(trimmed, dayIndex, periodBlock);
       if (course != null) results.add(course);
     }
-
     return results;
   }
 
   ParsedCourse? _parseSingleBlock(String html, int dayIndex, int periodBlock) {
-    // Split by <br> and strip tags for text content
+    // 按 <br> 分割并提取文本
     final lines = html
         .split(RegExp(r'<br\s*/?>', caseSensitive: false))
         .map((line) => line
@@ -88,10 +114,8 @@ class QiangZhiEduParser extends EduParser {
 
     if (lines.isEmpty) return null;
 
-    // Parse with tag-aware approach for key fields
+    // 解析 <font> 标签获取结构化信息
     final doc = html_parser.parseFragment(html);
-
-    // Extract teacher, weeks/periods, location from font tags
     String teacher = '';
     String weeksStr = '';
     String location = '';
@@ -100,31 +124,28 @@ class QiangZhiEduParser extends EduParser {
     for (final font in fonts) {
       final title = font.attributes['title'] ?? '';
       final text = font.text.trim();
-      if (title == '老师') {
+      if (title == '老师' || title == '教师') {
         teacher = text;
-      } else if (title.contains('周次')) {
+      } else if (title.contains('周次') || title.contains('周')) {
         weeksStr = text;
-      } else if (title == '教室') {
+      } else if (title == '教室' || title == '地点') {
         location = text;
       }
     }
 
-    // Course name is the first non-code, non-empty line after stripping tags
+    // 课程名称：第一个非代码行
     String name = '';
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
-      // Skip lines that look like course codes (e.g., "002976-080345D")
+    for (final line in lines) {
       if (_isCourseCode(line)) continue;
       name = line;
       break;
     }
-
     if (name.isEmpty) return null;
 
-    // Strip trailing red P/O markers (e.g., "高等数学 P" → "高等数学")
+    // 清理课程名（去除末尾的 P/O 标记）
     name = name.replaceAll(RegExp(r'\s+[PO]$'), '').trim();
 
-    // Parse weeks and periods
+    // 解析周次和节次
     int startPeriod = 1;
     int duration = 2;
     List<int> weeks = [];
@@ -133,20 +154,18 @@ class QiangZhiEduParser extends EduParser {
     if (weeksStr.isNotEmpty) {
       weeks = _parseWeeks(weeksStr);
       singleOrDouble = _parseSingleOrDouble(weeksStr);
-      // Try to extract periods from [XX-YY节] or [XX节]
-      final periodMatch =
-          RegExp(r'\[(\d+)(?:-(\d+))?节\]').firstMatch(weeksStr);
+      // 尝试提取节次：[XX-YY节] 或 [XX节]
+      final periodMatch = RegExp(r'\[(\d+)(?:-(\d+))?节\]').firstMatch(weeksStr);
       if (periodMatch != null) {
         startPeriod = int.tryParse(periodMatch.group(1)!) ?? 1;
         final end = int.tryParse(periodMatch.group(2) ?? '') ?? startPeriod;
         duration = end - startPeriod + 1;
       } else {
-        // Fallback: use period block position (each block = 2 periods)
+        // 使用行位置估算节次
         startPeriod = periodBlock * 2 + 1;
         duration = 2;
       }
     } else {
-      // No weeks info — use period block position
       startPeriod = periodBlock * 2 + 1;
       duration = 2;
     }
@@ -168,16 +187,15 @@ class QiangZhiEduParser extends EduParser {
   }
 
   bool _isCourseCode(String text) {
-    // Course codes look like "002976-080345D" or "C12345"
     return RegExp(r'^[A-Za-z0-9]{2,}-[A-Za-z0-9]{2,}$').hasMatch(text) ||
         RegExp(r'^[A-Z]\d{5,}$').hasMatch(text);
   }
 
   static List<int> _parseWeeks(String weeksStr) {
-    // Extract only the weeks portion: everything before '(' or '['
+    // 提取周次部分：括号或方括号之前的内容
     final match = RegExp(r'^([^(\[]+)').firstMatch(weeksStr);
-    final weeksOnly =
-        (match?.group(1) ?? weeksStr).replaceAll(RegExp(r'[周单双全\s]'), '');
+    final weeksOnly = (match?.group(1) ?? weeksStr)
+        .replaceAll(RegExp(r'[周单双全\s]'), '');
     return WeekUtils.parseWeeks(weeksOnly);
   }
 

@@ -12,7 +12,8 @@ _$ScheduleImpl _$$ScheduleImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isDefault: json['isDefault'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      displayedWeekdays: (json['displayedWeekdays'] as List<dynamic>?)
+      displayedWeekdays:
+          (json['displayedWeekdays'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const [1, 2, 3, 4, 5],

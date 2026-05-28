@@ -7,16 +7,17 @@ part of 'course.dart';
 // **************************************************************************
 
 _$CourseImpl _$$CourseImplFromJson(Map<String, dynamic> json) => _$CourseImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      teacher: json['teacher'] as String,
-      location: json['location'] as String?,
-      color: (json['color'] as num?)?.toInt() ?? 0xFF2196F3,
-      timeDetails: (json['timeDetails'] as List<dynamic>?)
-              ?.map((e) => TimeDetail.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-    );
+  id: json['id'] as String,
+  name: json['name'] as String,
+  teacher: json['teacher'] as String,
+  location: json['location'] as String?,
+  color: (json['color'] as num?)?.toInt() ?? 0xFF2196F3,
+  timeDetails:
+      (json['timeDetails'] as List<dynamic>?)
+          ?.map((e) => TimeDetail.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
 
 Map<String, dynamic> _$$CourseImplToJson(_$CourseImpl instance) =>
     <String, dynamic>{
@@ -33,7 +34,8 @@ _$TimeDetailImpl _$$TimeDetailImplFromJson(Map<String, dynamic> json) =>
       dayOfWeek: (json['dayOfWeek'] as num).toInt(),
       startPeriod: (json['startPeriod'] as num).toInt(),
       duration: (json['duration'] as num?)?.toInt() ?? 1,
-      weeks: (json['weeks'] as List<dynamic>?)
+      weeks:
+          (json['weeks'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const [],
