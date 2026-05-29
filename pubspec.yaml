@@ -42,6 +42,15 @@ dev_dependencies:
   drift_dev: ^2.22.1
   json_serializable: ^6.9.2
   freezed: ^2.5.8
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "image/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "image/icon_foreground.png"
+  adaptive_icon_monochrome: "image/icon_monochrome.png"
 
 flutter:
   uses-material-design: true
