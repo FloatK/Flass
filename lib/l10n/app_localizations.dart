@@ -1063,7 +1063,7 @@ abstract class AppLocalizations {
   /// No description provided for @independentDeveloper.
   ///
   /// In zh, this message translates to:
-  /// **'独立开发者'**
+  /// **'在校青春男大（笑'**
   String get independentDeveloper;
 
   /// No description provided for @aboutApp.

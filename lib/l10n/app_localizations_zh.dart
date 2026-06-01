@@ -525,7 +525,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get developer => '开发者';
 
   @override
-  String get independentDeveloper => '独立开发者';
+  String get independentDeveloper => '在校青春男大（笑';
 
   @override
   String get aboutApp => '关于应用';
