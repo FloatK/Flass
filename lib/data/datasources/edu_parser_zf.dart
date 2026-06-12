@@ -1,15 +1,15 @@
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
-import '../../core/utils/week_utils.dart';
 import 'edu_parser.dart';
+import 'edu_parser_mixin.dart';
 
 /// Parser for 正方教务系统 schedule tables.
 ///
 /// 正方系统特征：
 /// - 表格 class 包含 "kbcontent"
 /// - 单元格使用 div 嵌套，包含课程名、教师、周次、教室等信息
-/// - 字段通常使用 <font> 标签或纯文本，以 <br> 分隔
+/// - 字段通常使用 `<font>` 标签或纯文本，以 `<br>` 分隔
 ///
 /// 常见结构：
 /// ```html
@@ -25,7 +25,7 @@ import 'edu_parser.dart';
 ///   </tr>
 /// </table>
 /// ```
-class ZhengFangEduParser extends EduParser {
+class ZhengFangEduParser extends EduParser with EduParserMixin {
   const ZhengFangEduParser();
 
   @override
@@ -101,72 +101,40 @@ class ZhengFangEduParser extends EduParser {
   }
 
   ParsedCourse? _parseSingleBlock(String html, int dayIndex, int periodBlock) {
-    // 按 <br> 分割并提取文本
-    final lines = html
-        .split(RegExp(r'<br\s*/?>', caseSensitive: false))
-        .map((line) => line
-            .replaceAll(RegExp(r'<[^>]*>'), '')
-            .replaceAll('&nbsp;', ' ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
+    final lines = extractTextLines(html);
     if (lines.isEmpty) return null;
 
-    // 解析 <font> 标签获取结构化信息
-    final doc = html_parser.parseFragment(html);
-    String teacher = '';
-    String weeksStr = '';
-    String location = '';
+    // Extract structured data from font tags
+    final fontData = parseFontTags(html);
+    final teacher = fontData['teacher'] ?? '';
+    final weeksStr = fontData['weeks'] ?? '';
+    final location = fontData['location'] ?? '';
 
-    final fonts = doc.querySelectorAll('font');
-    for (final font in fonts) {
-      final title = font.attributes['title'] ?? '';
-      final text = font.text.trim();
-      if (title == '老师' || title == '教师') {
-        teacher = text;
-      } else if (title.contains('周次') || title.contains('周')) {
-        weeksStr = text;
-      } else if (title == '教室' || title == '地点') {
-        location = text;
-      }
-    }
-
-    // 课程名称：第一个非代码行
-    String name = '';
-    for (final line in lines) {
-      if (_isCourseCode(line)) continue;
-      name = line;
-      break;
-    }
+    // Find course name (skip course codes)
+    final name = findCourseName(lines);
     if (name.isEmpty) return null;
 
-    // 清理课程名（去除末尾的 P/O 标记）
-    name = name.replaceAll(RegExp(r'\s+[PO]$'), '').trim();
-
-    // 解析周次和节次
+    // Parse weeks and periods
     int startPeriod = 1;
     int duration = 2;
     List<int> weeks = [];
     String singleOrDouble = 'all';
 
     if (weeksStr.isNotEmpty) {
-      weeks = _parseWeeks(weeksStr);
-      singleOrDouble = _parseSingleOrDouble(weeksStr);
-      // 尝试提取节次：[XX-YY节] 或 [XX节]
-      final periodMatch = RegExp(r'\[(\d+)(?:-(\d+))?节\]').firstMatch(weeksStr);
-      if (periodMatch != null) {
-        startPeriod = int.tryParse(periodMatch.group(1)!) ?? 1;
-        final end = int.tryParse(periodMatch.group(2) ?? '') ?? startPeriod;
-        duration = end - startPeriod + 1;
+      weeks = parseWeeks(weeksStr);
+      singleOrDouble = parseSingleOrDouble(weeksStr);
+      // Try to extract periods from [XX-YY节] or [XX节]
+      final periods = extractPeriods(weeksStr);
+      if (periods != null) {
+        startPeriod = periods.$1;
+        duration = periods.$2;
       } else {
-        // 使用行位置估算节次
-        startPeriod = periodBlock * 2 + 1;
+        // Fallback: use period block position
+        startPeriod = periodFromRowIndex(periodBlock);
         duration = 2;
       }
     } else {
-      startPeriod = periodBlock * 2 + 1;
+      startPeriod = periodFromRowIndex(periodBlock);
       duration = 2;
     }
 
@@ -184,22 +152,5 @@ class ZhengFangEduParser extends EduParser {
         ),
       ],
     );
-  }
-
-  bool _isCourseCode(String text) {
-    return RegExp(r'^[A-Za-z0-9]{2,}-[A-Za-z0-9]{2,}$').hasMatch(text) ||
-        RegExp(r'^[A-Z]\d{5,}$').hasMatch(text);
-  }
-
-  static List<int> _parseWeeks(String weeksStr) {
-    // 提取周次部分：括号或方括号之前的内容
-    final match = RegExp(r'^([^(\[]+)').firstMatch(weeksStr);
-    final weeksOnly = (match?.group(1) ?? weeksStr)
-        .replaceAll(RegExp(r'[周单双全\s]'), '');
-    return WeekUtils.parseWeeks(weeksOnly);
-  }
-
-  static String _parseSingleOrDouble(String weeksStr) {
-    return WeekUtils.parseSingleOrDouble(weeksStr);
   }
 }

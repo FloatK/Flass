@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/vibrate.dart';
@@ -122,8 +126,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: Text(l10n.cancel),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              await _clearCache();
+              if (!mounted) return;
+              if (!context.mounted) return;
               showAppSnackBar(context, l10n.cacheCleared);
             },
             child: Text(l10n.confirm),
@@ -131,5 +138,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      // Clear SharedPreferences (except theme settings)
+      final prefs = await SharedPreferences.getInstance();
+      final themeKeys = prefs.getKeys().where((key) => 
+        key == 'theme_settings_json' || key == 'vibration_enabled'
+      ).toSet();
+      final themeData = <String, Object>{};
+      for (final key in themeKeys) {
+        final value = prefs.get(key);
+        if (value != null) themeData[key] = value;
+      }
+      await prefs.clear();
+      // Restore theme settings
+      for (final entry in themeData.entries) {
+        if (entry.value is bool) {
+          await prefs.setBool(entry.key, entry.value as bool);
+        } else if (entry.value is String) {
+          await prefs.setString(entry.key, entry.value as String);
+        }
+      }
+
+      // Clear temporary files
+      try {
+        final tempDir = await getTemporaryDirectory();
+        if (await tempDir.exists()) {
+          await for (final entity in tempDir.list()) {
+            if (entity is File && entity.path.contains('fl')) {
+              await entity.delete();
+            }
+          }
+        }
+      } catch (_) {
+        // Ignore temp file errors
+      }
+    } catch (e) {
+      // Silently handle cache clear errors
+    }
   }
 }

@@ -6,9 +6,9 @@ import 'action_item.dart';
 
 class AppBarConfig {
   static const String _key = 'app_bar_action_items';
-  static const List<ActionItem> _defaultItems = [
-    ActionItem.importTimetable,
-    ActionItem.exportTimetable,
+  static const List<String> _defaultItemIds = [
+    'importTimetable',
+    'exportTimetable',
   ];
 
   /// Load the ordered list of ActionItems that should appear on the AppBar.
@@ -16,21 +16,26 @@ class AppBarConfig {
   static Future<List<ActionItem>> loadActionItems() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(_key);
-    if (jsonStr == null) return List.from(_defaultItems);
+    final registry = ActionItemRegistry.instance;
+
+    if (jsonStr == null) {
+      return _defaultItemIds
+          .map((id) => registry.findById(id))
+          .whereType<ActionItem>()
+          .toList();
+    }
 
     try {
-      final List<dynamic> names = jsonDecode(jsonStr);
-      return names
-          .map((n) => ActionItem.values.cast<ActionItem?>().firstWhere(
-                (e) => e!.name == n,
-                orElse: () => null,
-              ))
+      final List<dynamic> ids = jsonDecode(jsonStr);
+      return ids
+          .map((id) => registry.findById(id as String))
           .whereType<ActionItem>()
-          .toList()
-        ..sort((a, b) => ActionItem.values.indexOf(a)
-            .compareTo(ActionItem.values.indexOf(b)));
+          .toList();
     } catch (_) {
-      return List.from(_defaultItems);
+      return _defaultItemIds
+          .map((id) => registry.findById(id))
+          .whereType<ActionItem>()
+          .toList();
     }
   }
 
@@ -38,19 +43,26 @@ class AppBarConfig {
   static Future<void> saveActionItems(List<ActionItem> items) async {
     final prefs = await SharedPreferences.getInstance();
     final limited = items.take(ActionItem.maxAppBarItems).toList();
-    final names = limited.map((e) => e.name).toList();
-    await prefs.setString(_key, jsonEncode(names));
+    final ids = limited.map((e) => e.id).toList();
+    await prefs.setString(_key, jsonEncode(ids));
   }
 
   /// Reset to default items.
   static Future<void> resetToDefault() async {
-    await saveActionItems(_defaultItems);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
   }
 
   /// Get items that are NOT on the AppBar (shown in popup).
-  static List<ActionItem> getOverflowItems(List<ActionItem> appBarItems) {
-    return ActionItem.values
-        .where((item) => !appBarItems.contains(item))
-        .toList();
+  ///
+  /// [allItems] 是所有可用的 ActionItem（已覆盖回调）。
+  /// 返回不在 AppBar 中的项目。
+  static List<ActionItem> getOverflowItems(
+    List<ActionItem> appBarItems, {
+    List<ActionItem>? allItems,
+  }) {
+    final appBarIds = appBarItems.map((e) => e.id).toSet();
+    final source = allItems ?? ActionItemRegistry.instance.getAll();
+    return source.where((item) => !appBarIds.contains(item.id)).toList();
   }
 }

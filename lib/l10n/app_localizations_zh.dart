@@ -473,7 +473,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get defaultScheduleName => '课表1';
+  String get defaultScheduleName => '默认课表';
 
   @override
   String importedScheduleName(int month, int day, String time) {
@@ -621,4 +621,84 @@ class AppLocalizationsZh extends AppLocalizations {
   String weekdayCourseCount(String weekday, int count) {
     return '$weekday · $count门课程';
   }
+
+  @override
+  String get keepAtLeastOneSchedule => '至少保留一个课表';
+
+  @override
+  String get cannotDeleteDefaultSchedule => '默认课表不可删除';
+
+  @override
+  String get deleteScheduleFailed => '删除课表失败';
+
+  @override
+  String get importTimetable => '从教务导入';
+
+  @override
+  String get shareTimetable => '分享课表';
+
+  @override
+  String get importFromTextAction => '从文本导入';
+
+  @override
+  String get previousWeekAction => '上一周';
+
+  @override
+  String get nextWeekAction => '下一周';
+
+  @override
+  String get goToCurrentWeekAction => '返回当前周';
+
+  @override
+  String get selectTimetableAction => '选择课表';
+
+  @override
+  String get themeAction => '主题';
+
+  @override
+  String get swapCourseAction => '调课';
+
+  @override
+  String get importHelpTooltip => '查看导入流程';
+
+  @override
+  String get importGuideTitle => '教务系统导入指南';
+
+  @override
+  String get importGuideStep1Title => '打开教务系统';
+
+  @override
+  String get importGuideStep1Desc => '在浏览器中登录学校教务系统，进入课表页面。确保课表数据已完全加载。';
+
+  @override
+  String get importGuideStep2Title => '获取课表页面';
+
+  @override
+  String get importGuideStep2Desc =>
+      '在上方输入框中粘贴教务系统课表页面的 URL，点击箭头按钮访问。或直接在内置浏览器中导航到课表页面。';
+
+  @override
+  String get importGuideStep3Title => '抓取课表';
+
+  @override
+  String get importGuideStep3Desc =>
+      '页面加载完成后，点击右上角「抓取课表」按钮。系统会自动识别教务系统类型并解析课表数据。';
+
+  @override
+  String get importGuideStep4Title => '选择导入方式';
+
+  @override
+  String get importGuideStep4Desc => '解析成功后，选择「覆盖当前课表」或「新建课表并导入」。建议首次导入选择新建课表。';
+
+  @override
+  String get importGuideStep5Title => '设置学期信息';
+
+  @override
+  String get importGuideStep5Desc => '导入完成后，设置开学日期和总周数，以便正确计算当前周次。';
+
+  @override
+  String get importGuideTip => '提示：如果自动解析失败，可以尝试手动选择教务系统类型。桌面端请粘贴 HTML 源代码。';
+
+  @override
+  String get gotIt => '知道了';
 }

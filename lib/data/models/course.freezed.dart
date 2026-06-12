@@ -28,6 +28,12 @@ mixin _$Course {
   int get color => throw _privateConstructorUsedError;
   List<TimeDetail> get timeDetails => throw _privateConstructorUsedError;
 
+  /// 扩展元数据字段
+  ///
+  /// 用于存储未来可能需要的属性，无需数据库迁移。
+  /// 例如：credits, category, syllabusUrl, customTags 等。
+  Map<String, dynamic> get metadata => throw _privateConstructorUsedError;
+
   /// Serializes this Course to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -49,6 +55,7 @@ abstract class $CourseCopyWith<$Res> {
     String? location,
     int color,
     List<TimeDetail> timeDetails,
+    Map<String, dynamic> metadata,
   });
 }
 
@@ -73,6 +80,7 @@ class _$CourseCopyWithImpl<$Res, $Val extends Course>
     Object? location = freezed,
     Object? color = null,
     Object? timeDetails = null,
+    Object? metadata = null,
   }) {
     return _then(
       _value.copyWith(
@@ -100,6 +108,10 @@ class _$CourseCopyWithImpl<$Res, $Val extends Course>
                 ? _value.timeDetails
                 : timeDetails // ignore: cast_nullable_to_non_nullable
                       as List<TimeDetail>,
+            metadata: null == metadata
+                ? _value.metadata
+                : metadata // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>,
           )
           as $Val,
     );
@@ -121,6 +133,7 @@ abstract class _$$CourseImplCopyWith<$Res> implements $CourseCopyWith<$Res> {
     String? location,
     int color,
     List<TimeDetail> timeDetails,
+    Map<String, dynamic> metadata,
   });
 }
 
@@ -144,6 +157,7 @@ class __$$CourseImplCopyWithImpl<$Res>
     Object? location = freezed,
     Object? color = null,
     Object? timeDetails = null,
+    Object? metadata = null,
   }) {
     return _then(
       _$CourseImpl(
@@ -171,6 +185,10 @@ class __$$CourseImplCopyWithImpl<$Res>
             ? _value._timeDetails
             : timeDetails // ignore: cast_nullable_to_non_nullable
                   as List<TimeDetail>,
+        metadata: null == metadata
+            ? _value._metadata
+            : metadata // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>,
       ),
     );
   }
@@ -186,7 +204,9 @@ class _$CourseImpl implements _Course {
     this.location,
     this.color = 0xFF2196F3,
     final List<TimeDetail> timeDetails = const [],
-  }) : _timeDetails = timeDetails;
+    final Map<String, dynamic> metadata = const {},
+  }) : _timeDetails = timeDetails,
+       _metadata = metadata;
 
   factory _$CourseImpl.fromJson(Map<String, dynamic> json) =>
       _$$CourseImplFromJson(json);
@@ -211,9 +231,27 @@ class _$CourseImpl implements _Course {
     return EqualUnmodifiableListView(_timeDetails);
   }
 
+  /// 扩展元数据字段
+  ///
+  /// 用于存储未来可能需要的属性，无需数据库迁移。
+  /// 例如：credits, category, syllabusUrl, customTags 等。
+  final Map<String, dynamic> _metadata;
+
+  /// 扩展元数据字段
+  ///
+  /// 用于存储未来可能需要的属性，无需数据库迁移。
+  /// 例如：credits, category, syllabusUrl, customTags 等。
+  @override
+  @JsonKey()
+  Map<String, dynamic> get metadata {
+    if (_metadata is EqualUnmodifiableMapView) return _metadata;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_metadata);
+  }
+
   @override
   String toString() {
-    return 'Course(id: $id, name: $name, teacher: $teacher, location: $location, color: $color, timeDetails: $timeDetails)';
+    return 'Course(id: $id, name: $name, teacher: $teacher, location: $location, color: $color, timeDetails: $timeDetails, metadata: $metadata)';
   }
 
   @override
@@ -230,7 +268,8 @@ class _$CourseImpl implements _Course {
             const DeepCollectionEquality().equals(
               other._timeDetails,
               _timeDetails,
-            ));
+            ) &&
+            const DeepCollectionEquality().equals(other._metadata, _metadata));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -243,6 +282,7 @@ class _$CourseImpl implements _Course {
     location,
     color,
     const DeepCollectionEquality().hash(_timeDetails),
+    const DeepCollectionEquality().hash(_metadata),
   );
 
   /// Create a copy of Course
@@ -267,6 +307,7 @@ abstract class _Course implements Course {
     final String? location,
     final int color,
     final List<TimeDetail> timeDetails,
+    final Map<String, dynamic> metadata,
   }) = _$CourseImpl;
 
   factory _Course.fromJson(Map<String, dynamic> json) = _$CourseImpl.fromJson;
@@ -283,6 +324,13 @@ abstract class _Course implements Course {
   int get color;
   @override
   List<TimeDetail> get timeDetails;
+
+  /// 扩展元数据字段
+  ///
+  /// 用于存储未来可能需要的属性，无需数据库迁移。
+  /// 例如：credits, category, syllabusUrl, customTags 等。
+  @override
+  Map<String, dynamic> get metadata;
 
   /// Create a copy of Course
   /// with the given fields replaced by the non-null parameter values.

@@ -60,7 +60,7 @@ final currentWeekProvider = AutoDisposeProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentWeekRef = AutoDisposeProviderRef<int>;
-String _$currentScheduleHash() => r'debc66617cf36e2f22900237a43272326297d119';
+String _$currentScheduleHash() => r'2b8e488c439fbaa6799cd7aed758d400cb78da9c';
 
 /// See also [CurrentSchedule].
 @ProviderFor(CurrentSchedule)

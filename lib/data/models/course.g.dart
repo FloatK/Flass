@@ -17,6 +17,7 @@ _$CourseImpl _$$CourseImplFromJson(Map<String, dynamic> json) => _$CourseImpl(
           ?.map((e) => TimeDetail.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
 );
 
 Map<String, dynamic> _$$CourseImplToJson(_$CourseImpl instance) =>
@@ -27,6 +28,7 @@ Map<String, dynamic> _$$CourseImplToJson(_$CourseImpl instance) =>
       'location': instance.location,
       'color': instance.color,
       'timeDetails': instance.timeDetails,
+      'metadata': instance.metadata,
     };
 
 _$TimeDetailImpl _$$TimeDetailImplFromJson(Map<String, dynamic> json) =>

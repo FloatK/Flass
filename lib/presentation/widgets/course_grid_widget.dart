@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/utils/vibrate.dart';
+import '../../core/utils/l10n_utils.dart';
 import '../../data/models/course.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/theme_provider.dart';
+import 'course_block_widget.dart';
 
 /// 课程时间段槽位。
 class CourseSlot {
@@ -39,19 +39,6 @@ class CourseGridWidget extends ConsumerWidget {
   });
 
   static const double _periodLabelWidth = 40.0;
-
-  String _getDayLabel(AppLocalizations l10n, int index) {
-    switch (index) {
-      case 0: return l10n.mon;
-      case 1: return l10n.tue;
-      case 2: return l10n.wed;
-      case 3: return l10n.thu;
-      case 4: return l10n.fri;
-      case 5: return l10n.sat;
-      case 6: return l10n.sun;
-      default: return '';
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -141,7 +128,7 @@ class CourseGridWidget extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _getDayLabel(l10n, i),
+                    L10nUtils.getDayLabelByIndex(l10n, i),
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onSurfaceVariant,
@@ -235,63 +222,10 @@ class CourseGridWidget extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildCourseBlock(WidgetRef ref, Course course, {required bool isDark}) {
-    final tSettings = ref.watch(themeSettingsProvider);
-
-    final baseColor = course.color != 0
-        ? Color(course.color)
-        : Color(AppColors.presetCourseColors[0]);
-
-    Color courseColor;
-    if (isDark) {
-      // Dark mode: auto-dim colors
-      courseColor = tSettings.getDarkModeCourseColor(baseColor.value);
-    } else {
-      // Light mode: use normal color adjustment
-      final hsl = HSLColor.fromColor(baseColor);
-      final adjustedLightness =
-          (hsl.lightness * tSettings.colorLightness).clamp(0.0, 1.0);
-      courseColor = hsl.withLightness(adjustedLightness).toColor();
-    }
-
-    final radius = tSettings.cornerRadius;
-
-    return GestureDetector(
-      onTap: () {
-        Vibrate.light();
-        onCourseTap?.call(course);
-      },
-      child: Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: courseColor,
-          borderRadius: BorderRadius.circular(radius),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              course.name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (course.location != null && course.location!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Text(
-                  course.location!,
-                  style: const TextStyle(color: Colors.white, fontSize: 9),
-                ),
-              ),
-          ],
-        ),
-      ),
+    return CourseBlockWidget(
+      course: course,
+      isDark: isDark,
+      onTap: () => onCourseTap?.call(course),
     );
   }
 

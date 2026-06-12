@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/config/action_item.dart';
 import '../../core/config/app_bar_config.dart';
 import '../../core/utils/vibrate.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Custom popup displayed when tapping the AppBar's overflow menu button.
 /// Contains: week slider + GridView of action buttons (4 columns).
@@ -15,6 +16,8 @@ class SchedulePopup extends ConsumerStatefulWidget {
   final List<ActionItem> appBarItems;
   final VoidCallback onConfigChanged;
   final void Function(ActionItem item)? onActionItem;
+  /// 所有可用的 ActionItem（已覆盖回调），用于填充弹出菜单
+  final List<ActionItem>? allAvailableItems;
 
   const SchedulePopup({
     super.key,
@@ -24,6 +27,7 @@ class SchedulePopup extends ConsumerStatefulWidget {
     required this.appBarItems,
     required this.onConfigChanged,
     this.onActionItem,
+    this.allAvailableItems,
   });
 
   @override
@@ -33,6 +37,8 @@ class SchedulePopup extends ConsumerStatefulWidget {
 class _SchedulePopupState extends ConsumerState<SchedulePopup> {
   late double _sliderValue;
 
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
@@ -41,13 +47,21 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
 
   @override
   Widget build(BuildContext context) {
-    final overflowItems = AppBarConfig.getOverflowItems(widget.appBarItems);
+    final overflowItems = AppBarConfig.getOverflowItems(
+      widget.appBarItems,
+      allItems: widget.allAvailableItems,
+    );
+    final allItems = widget.allAvailableItems ?? ActionItemRegistry.instance.getAll();
     // Always include selectTimetable and navigation items if not already there
+    final selectTimetable = allItems.firstWhere(
+      (item) => item.id == 'selectTimetable',
+      orElse: () => ActionItemRegistry.instance.findById('selectTimetable')!,
+    );
     final allGridItems = [
       ...overflowItems,
       // Ensure selectTimetable is always in the grid
-      if (!overflowItems.contains(ActionItem.selectTimetable))
-        ActionItem.selectTimetable,
+      if (!overflowItems.any((item) => item.id == 'selectTimetable'))
+        selectTimetable,
     ];
 
     return Stack(
@@ -94,7 +108,7 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
                         child: Column(
                           children: [
                             Text(
-                              '第 ${_sliderValue.round()} 周',
+                              l10n.weekSliderLabel(_sliderValue.round()),
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -105,7 +119,7 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
                               min: 1,
                               max: widget.totalWeeks.toDouble(),
                               divisions: widget.totalWeeks - 1,
-                              label: '第 ${_sliderValue.round()} 周',
+                              label: l10n.weekSliderLabel(_sliderValue.round()),
                               onChanged: (v) {
                                 setState(() => _sliderValue = v);
                               },
@@ -141,16 +155,16 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
     // All buttons including settings and config
     final allButtons = [
       ...items.map((item) => _ActionGridButtonData(
-            label: item.displayName,
+            label: item.displayNameBuilder(context),
             icon: item.icon,
             onTap: () {
               Vibrate.light();
               Navigator.pop(context);
-              widget.onActionItem?.call(item);
+              item.onPressed(context);
             },
           )),
       _ActionGridButtonData(
-        label: '设置',
+        label: l10n.settings,
         icon: Icons.settings,
         onTap: () {
           Vibrate.light();
@@ -159,7 +173,7 @@ class _SchedulePopupState extends ConsumerState<SchedulePopup> {
         },
       ),
       _ActionGridButtonData(
-        label: '配置工具栏',
+        label: l10n.configToolbar,
         icon: Icons.tune,
         onTap: () {
           Vibrate.light();
@@ -255,6 +269,8 @@ class _AppBarConfigDialog extends StatefulWidget {
 class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
   late List<ActionItem> _selected;
 
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
@@ -263,8 +279,9 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final allItems = ActionItemRegistry.instance.getAll();
     return AlertDialog(
-      title: const Text('配置工具栏'),
+      title: Text(l10n.configToolbar),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -272,12 +289,12 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '选择要在顶栏显示的按钮（最多 ${ActionItem.maxAppBarItems} 个）',
+                l10n.maxAppBarItemsHint(ActionItem.maxAppBarItems),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
-              ...ActionItem.values.map((item) {
-                final checked = _selected.contains(item);
+              ...allItems.map((item) {
+                final checked = _selected.any((s) => s.id == item.id);
                 return CheckboxListTile(
                   value: checked,
                   title: Row(
@@ -286,7 +303,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          item.displayName,
+                          item.displayNameBuilder(context),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -300,7 +317,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                '最多选择 ${ActionItem.maxAppBarItems} 个',
+                                '${l10n.maxItemsHint} ${ActionItem.maxAppBarItems} 个',
                               ),
                             ),
                           );
@@ -308,7 +325,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
                         }
                         _selected.add(item);
                       } else {
-                        _selected.remove(item);
+                        _selected.removeWhere((s) => s.id == item.id);
                       }
                     });
                   },
@@ -326,14 +343,15 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
             TextButton(
               onPressed: () {
                 Vibrate.light();
-                const defaults = [
-                  ActionItem.importTimetable,
-                  ActionItem.exportTimetable,
-                ];
+                final registry = ActionItemRegistry.instance;
+                final defaults = [
+                  registry.findById('importTimetable'),
+                  registry.findById('exportTimetable'),
+                ].whereType<ActionItem>().toList();
                 setState(() => _selected = List.from(defaults));
                 AppBarConfig.resetToDefault();
               },
-              child: const Text('重置默认'),
+              child: Text(l10n.resetDefault),
             ),
             const Spacer(),
             TextButton(
@@ -341,7 +359,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
                 Vibrate.light();
                 Navigator.pop(context);
               },
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
@@ -350,7 +368,7 @@ class _AppBarConfigDialogState extends State<_AppBarConfigDialog> {
                 widget.onSaved(_selected);
                 Navigator.pop(context);
               },
-              child: const Text('确认'),
+              child: Text(l10n.confirm),
             ),
           ],
         ),

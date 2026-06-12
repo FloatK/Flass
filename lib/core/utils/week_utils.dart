@@ -29,8 +29,10 @@ class WeekUtils {
 
   /// 将周次列表格式化为可读字符串。
   /// 例: [1,2,3,5,7,8,9] → "第1-3, 5, 7-9周"
-  static String formatWeeks(List<int> weeks) {
-    if (weeks.isEmpty) return '每周';
+  ///
+  /// [everyWeekLabel] 用于空列表时的显示，默认为 '每周'。
+  static String formatWeeks(List<int> weeks, {String everyWeekLabel = '每周'}) {
+    if (weeks.isEmpty) return everyWeekLabel;
     final sorted = List<int>.from(weeks)..sort();
     final ranges = <String>[];
     int start = sorted.first;

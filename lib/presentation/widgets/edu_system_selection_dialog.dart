@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/datasources/edu_parser.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 教务系统选择对话框。
 ///
@@ -33,8 +34,9 @@ class EduSystemSelectionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('选择教务系统'),
+      title: Text(l10n.selectEduSystem),
       content: SizedBox(
         width: double.maxFinite,
         child: ListView.builder(
@@ -53,7 +55,7 @@ class EduSystemSelectionDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
       ],
     );

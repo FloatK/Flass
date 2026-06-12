@@ -967,7 +967,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultScheduleName.
   ///
   /// In zh, this message translates to:
-  /// **'课表1'**
+  /// **'默认课表'**
   String get defaultScheduleName;
 
   /// No description provided for @importedScheduleName.
@@ -1227,6 +1227,162 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{weekday} · {count}门课程'**
   String weekdayCourseCount(String weekday, int count);
+
+  /// No description provided for @keepAtLeastOneSchedule.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少保留一个课表'**
+  String get keepAtLeastOneSchedule;
+
+  /// No description provided for @cannotDeleteDefaultSchedule.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认课表不可删除'**
+  String get cannotDeleteDefaultSchedule;
+
+  /// No description provided for @deleteScheduleFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除课表失败'**
+  String get deleteScheduleFailed;
+
+  /// No description provided for @importTimetable.
+  ///
+  /// In zh, this message translates to:
+  /// **'从教务导入'**
+  String get importTimetable;
+
+  /// No description provided for @shareTimetable.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享课表'**
+  String get shareTimetable;
+
+  /// No description provided for @importFromTextAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'从文本导入'**
+  String get importFromTextAction;
+
+  /// No description provided for @previousWeekAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一周'**
+  String get previousWeekAction;
+
+  /// No description provided for @nextWeekAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一周'**
+  String get nextWeekAction;
+
+  /// No description provided for @goToCurrentWeekAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回当前周'**
+  String get goToCurrentWeekAction;
+
+  /// No description provided for @selectTimetableAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择课表'**
+  String get selectTimetableAction;
+
+  /// No description provided for @themeAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题'**
+  String get themeAction;
+
+  /// No description provided for @swapCourseAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'调课'**
+  String get swapCourseAction;
+
+  /// No description provided for @importHelpTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看导入流程'**
+  String get importHelpTooltip;
+
+  /// No description provided for @importGuideTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'教务系统导入指南'**
+  String get importGuideTitle;
+
+  /// No description provided for @importGuideStep1Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开教务系统'**
+  String get importGuideStep1Title;
+
+  /// No description provided for @importGuideStep1Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'在浏览器中登录学校教务系统，进入课表页面。确保课表数据已完全加载。'**
+  String get importGuideStep1Desc;
+
+  /// No description provided for @importGuideStep2Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取课表页面'**
+  String get importGuideStep2Title;
+
+  /// No description provided for @importGuideStep2Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'在上方输入框中粘贴教务系统课表页面的 URL，点击箭头按钮访问。或直接在内置浏览器中导航到课表页面。'**
+  String get importGuideStep2Desc;
+
+  /// No description provided for @importGuideStep3Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'抓取课表'**
+  String get importGuideStep3Title;
+
+  /// No description provided for @importGuideStep3Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'页面加载完成后，点击右上角「抓取课表」按钮。系统会自动识别教务系统类型并解析课表数据。'**
+  String get importGuideStep3Desc;
+
+  /// No description provided for @importGuideStep4Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择导入方式'**
+  String get importGuideStep4Title;
+
+  /// No description provided for @importGuideStep4Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'解析成功后，选择「覆盖当前课表」或「新建课表并导入」。建议首次导入选择新建课表。'**
+  String get importGuideStep4Desc;
+
+  /// No description provided for @importGuideStep5Title.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置学期信息'**
+  String get importGuideStep5Title;
+
+  /// No description provided for @importGuideStep5Desc.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入完成后，设置开学日期和总周数，以便正确计算当前周次。'**
+  String get importGuideStep5Desc;
+
+  /// No description provided for @importGuideTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示：如果自动解析失败，可以尝试手动选择教务系统类型。桌面端请粘贴 HTML 源代码。'**
+  String get importGuideTip;
+
+  /// No description provided for @gotIt.
+  ///
+  /// In zh, this message translates to:
+  /// **'知道了'**
+  String get gotIt;
 }
 
 class _AppLocalizationsDelegate

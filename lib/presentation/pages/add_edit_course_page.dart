@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/l10n_utils.dart';
 import '../../core/utils/vibrate.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../data/models/course.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/course_provider.dart';
+import '../providers/schedule_provider.dart';
+import '../widgets/color_picker.dart';
 
 class AddEditCoursePage extends ConsumerStatefulWidget {
   const AddEditCoursePage({super.key, this.courseId});
@@ -57,17 +60,9 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
 
   AppLocalizations get l10n => AppLocalizations.of(context)!;
 
-  String _getDayLabel(int dayOfWeek) {
-    switch (dayOfWeek) {
-      case 1: return l10n.mon;
-      case 2: return l10n.tue;
-      case 3: return l10n.wed;
-      case 4: return l10n.thu;
-      case 5: return l10n.fri;
-      case 6: return l10n.sat;
-      case 7: return l10n.sun;
-      default: return '';
-    }
+  int get _totalWeeks {
+    final schedule = ref.read(currentScheduleProvider).valueOrNull;
+    return schedule?.totalWeeks ?? 20;
   }
 
   @override
@@ -313,37 +308,14 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
   // ---------------------------------------------------------------------------
 
   Widget _buildColorPicker(ColorScheme colorScheme) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: AppColors.presetCourseColors.map((color) {
-        final isSelected = _selectedColor == color;
-        return GestureDetector(
-          onTap: () { Vibrate.light(); setState(() => _selectedColor = color); },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Color(color),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: Color(color).withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 18, color: Colors.white)
-                : null,
-          ),
-        );
-      }).toList(),
+    final colors = AppColors.presetCourseColors.map((c) => Color(c)).toList();
+    final selectedIndex = AppColors.presetCourseColors.indexOf(_selectedColor);
+    return ColorPicker(
+      colors: colors,
+      selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
+      onColorSelected: (index) {
+        setState(() => _selectedColor = AppColors.presetCourseColors[index]);
+      },
     );
   }
 
@@ -404,7 +376,7 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
                       7,
                       (i) => DropdownMenuItem(
                         value: i + 1,
-                        child: Text(_getDayLabel(i + 1)),
+                        child: Text(L10nUtils.getDayLabel(l10n, i + 1)),
                       ),
                     ),
                     onChanged: (v) {
@@ -472,21 +444,21 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
                   Vibrate.light();
                   setState(() {
                     entry.selectedWeeks =
-                        Set<int>.from(List.generate(20, (i) => i + 1));
+                        Set<int>.from(List.generate(_totalWeeks, (i) => i + 1));
                   });
                 }),
                 _buildWeekChip(l10n.singleWeek, () {
                   Vibrate.light();
                   setState(() {
                     entry.selectedWeeks =
-                        Set<int>.from(List.generate(10, (i) => i * 2 + 1));
+                        Set<int>.from(List.generate((_totalWeeks + 1) ~/ 2, (i) => i * 2 + 1));
                   });
                 }),
                 _buildWeekChip(l10n.doubleWeek, () {
                   Vibrate.light();
                   setState(() {
                     entry.selectedWeeks =
-                        Set<int>.from(List.generate(10, (i) => i * 2 + 2));
+                        Set<int>.from(List.generate(_totalWeeks ~/ 2, (i) => i * 2 + 2));
                   });
                 }),
               ],
@@ -494,11 +466,11 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
 
             const SizedBox(height: 8),
 
-            // ── Week checkboxes (20 weeks) ──
+            // ── Week checkboxes ──
             Wrap(
               spacing: 2,
               runSpacing: 0,
-              children: List.generate(20, (i) {
+              children: List.generate(_totalWeeks, (i) {
                 final week = i + 1;
                 final selected = entry.selectedWeeks.contains(week);
                 return InkWell(

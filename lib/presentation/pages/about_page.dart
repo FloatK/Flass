@@ -161,8 +161,10 @@ class AboutPage extends StatelessWidget {
 
   Future<void> _launchGitHub() async {
     final uri = Uri.parse('https://github.com/FloatK');
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Silently handle launch errors
     }
   }
 
@@ -198,7 +200,7 @@ class _GitHubAvatar extends StatelessWidget {
       radius: radius,
       backgroundImage: AssetImage(fallbackAsset),
       foregroundImage: NetworkImage(url),
-      onForegroundImageError: (_, __) {},
+      onForegroundImageError: (_, _) {},
     );
   }
 }

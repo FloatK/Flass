@@ -1,9 +1,7 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' as drift;
-
 import '../../domain/repositories/schedule_repository.dart';
-import '../datasources/database.dart' hide Schedule;
+import '../datasources/database.dart';
 import '../models/schedule.dart';
 
 class ScheduleRepositoryImpl implements ScheduleRepository {
@@ -36,15 +34,14 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
     try {
       await _db.createSchedule(
         SchedulesCompanion(
-          id: drift.Value(schedule.id),
-          name: drift.Value(schedule.name),
-          isDefault: drift.Value(schedule.isDefault),
-          createdAt: drift.Value(schedule.createdAt),
-          displayedWeekdays:
-              drift.Value(jsonEncode(schedule.displayedWeekdays)),
-          maxCoursesPerDay: drift.Value(schedule.maxCoursesPerDay),
-          startDate: drift.Value(schedule.startDate),
-          totalWeeks: drift.Value(schedule.totalWeeks),
+          id: schedule.id,
+          name: schedule.name,
+          isDefault: schedule.isDefault,
+          createdAt: schedule.createdAt,
+          displayedWeekdays: jsonEncode(schedule.displayedWeekdays),
+          maxCoursesPerDay: schedule.maxCoursesPerDay,
+          startDate: schedule.startDate,
+          totalWeeks: schedule.totalWeeks,
         ),
       );
     } catch (e) {
@@ -67,12 +64,11 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       await _db.updateSchedule(
         schedule.id,
         SchedulesCompanion(
-          name: drift.Value(schedule.name),
-          displayedWeekdays:
-              drift.Value(jsonEncode(schedule.displayedWeekdays)),
-          maxCoursesPerDay: drift.Value(schedule.maxCoursesPerDay),
-          startDate: drift.Value(schedule.startDate),
-          totalWeeks: drift.Value(schedule.totalWeeks),
+          name: schedule.name,
+          displayedWeekdays: jsonEncode(schedule.displayedWeekdays),
+          maxCoursesPerDay: schedule.maxCoursesPerDay,
+          startDate: schedule.startDate,
+          totalWeeks: schedule.totalWeeks,
         ),
       );
     } catch (e) {

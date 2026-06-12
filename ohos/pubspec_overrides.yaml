@@ -1,0 +1,65 @@
+# =============================================================================
+# Flass 鸿蒙 (OHOS) 专用依赖覆盖
+#
+# 使用方法：
+#   1. 构建鸿蒙版本时，将此文件重命名为 pubspec_overrides.yaml
+#   2. 运行 flutter pub get
+#   3. 执行 flutter run -d ohos 或 flutter build hap
+#
+# 注意：此文件会覆盖 pubspec.yaml 中的依赖版本
+# =============================================================================
+
+dependency_overrides:
+  # ---------------------------------------------------------------------------
+  # SQLite - OpenHarmony-SIG 官方适配
+  # ---------------------------------------------------------------------------
+  sqflite:
+    git:
+      url: "https://gitcode.com/openharmony-sig/flutter_sqflite.git"
+      path: "./sqflite"
+      ref: "master"
+
+  # ---------------------------------------------------------------------------
+  # 存储类依赖 - OpenHarmony-SIG 官方适配
+  # ---------------------------------------------------------------------------
+  shared_preferences:
+    git:
+      url: "https://gitee.com/openharmony-sig/flutter_packages.git"
+      path: "packages/shared_preferences/shared_preferences"
+      ref: "Flutter3.27"
+
+  path_provider:
+    git:
+      url: "https://gitee.com/openharmony-sig/flutter_packages.git"
+      path: "packages/path_provider/path_provider"
+      ref: "Flutter3.27"
+
+  # ---------------------------------------------------------------------------
+  # 系统功能依赖 - OpenHarmony-SIG 官方适配
+  # ---------------------------------------------------------------------------
+  url_launcher:
+    git:
+      url: "https://gitee.com/openharmony-sig/flutter_packages.git"
+      path: "packages/url_launcher/url_launcher"
+      ref: "Flutter3.27"
+
+  share_plus:
+    git:
+      url: "https://gitee.com/openharmony-sig/flutter_packages.git"
+      path: "packages/share_plus/share_plus"
+      ref: "Flutter3.27"
+
+  file_picker:
+    git:
+      url: "https://gitee.com/openharmony-sig/flutter_packages.git"
+      path: "packages/file_picker/file_picker"
+      ref: "Flutter3.27"
+
+  # ---------------------------------------------------------------------------
+  # WebView - openharmony-tpc 专用分支
+  # ---------------------------------------------------------------------------
+  webview_flutter:
+    git:
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+      path: "packages/webview_flutter/webview_flutter"
+      ref: "br_webview_flutter-v4.8.0_ohos"

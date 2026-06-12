@@ -12,6 +12,11 @@ class Course with _$Course {
     String? location,
     @Default(0xFF2196F3) int color,
     @Default([]) List<TimeDetail> timeDetails,
+    /// 扩展元数据字段
+    ///
+    /// 用于存储未来可能需要的属性，无需数据库迁移。
+    /// 例如：credits, category, syllabusUrl, customTags 等。
+    @Default({}) Map<String, dynamic> metadata,
   }) = _Course;
 
   factory Course.fromJson(Map<String, dynamic> json) => _$CourseFromJson(json);

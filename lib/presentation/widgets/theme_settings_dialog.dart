@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/vibrate.dart';
+import '../../l10n/app_localizations.dart';
 import '../providers/theme_provider.dart';
+import 'color_picker.dart';
 
 class ThemeSettingsDialog extends ConsumerStatefulWidget {
   /// Called when slider dragging state changes (true = dragging in progress).
@@ -28,6 +30,8 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
   late Brightness _brightness;
   late int _colorIndex;
   String? _draggingSlider;
+
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -64,7 +68,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
       surfaceTintColor: _draggingSlider != null ? Colors.transparent : null,
       title: Opacity(
         opacity: _draggingSlider == null ? 1.0 : 0.0,
-        child: const Text('主题设置'),
+        child: Text(l10n.themeSettings),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -77,10 +81,10 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               _buildSection(
                 hideWhenDragging: true,
                 child: SwitchListTile(
-                  title: const Text('跟随系统深色模式'),
-                  subtitle: const Text(
-                    '开启后自动跟随系统亮暗模式',
-                    style: TextStyle(fontSize: 12),
+                  title: Text(l10n.followSystemDarkMode),
+                  subtitle: Text(
+                    l10n.followSystemSubtitle,
+                    style: const TextStyle(fontSize: 12),
                   ),
                   value: _followSystem,
                   onChanged: (v) {
@@ -98,7 +102,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('主题模式',
+                    Text(l10n.themeMode,
                         style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: 8),
                     _buildBrightnessSelector(),
@@ -112,7 +116,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('主题颜色',
+                    Text(l10n.themeColor,
                         style: Theme.of(context).textTheme.titleSmall),
                     const SizedBox(height: 12),
                     _buildColorGrid(),
@@ -123,7 +127,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               // ---- 课程圆角 ----
               _buildSection(
                 child: _buildSlider(
-                  label: '课程圆角半径',
+                  label: l10n.courseCornerRadius,
                   value: settings.cornerRadius,
                   min: 0,
                   max: 20,
@@ -138,7 +142,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               // ---- 课程高度 ----
               _buildSection(
                 child: _buildSlider(
-                  label: '课程块高度',
+                  label: l10n.courseBlockHeight,
                   value: settings.blockHeight,
                   min: 20,
                   max: 100,
@@ -153,7 +157,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               // ---- 课程间距 ----
               _buildSection(
                 child: _buildSlider(
-                  label: '课程间距',
+                  label: l10n.courseSpacing,
                   value: settings.courseSpacing,
                   min: 0,
                   max: 20,
@@ -168,7 +172,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               // ---- 水平间距 ----
               _buildSection(
                 child: _buildSlider(
-                  label: '列间距',
+                  label: l10n.columnSpacing,
                   value: settings.horizontalSpacing,
                   min: 0,
                   max: 20,
@@ -183,11 +187,11 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               // ---- 颜色深浅 ----
               _buildSection(
                 child: _buildSlider(
-                  label: '颜色深浅',
+                  label: l10n.colorLightness,
                   value: settings.colorLightness,
                   min: 0.5,
                   max: 1.8,
-                  divisions: 36,
+                  divisions: 13,
                   suffix: 'x',
                   onChanged: (v) =>
                       _updateAndSave((s) => s.copyWith(colorLightness: v)),
@@ -199,10 +203,10 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               _buildSection(
                 hideWhenDragging: true,
                 child: SwitchListTile(
-                  title: const Text('背景颜色跟随主题色'),
-                  subtitle: const Text(
-                    '开启后底板背景色跟随主题主色变化',
-                    style: TextStyle(fontSize: 12),
+                  title: Text(l10n.backgroundFollowsTheme),
+                  subtitle: Text(
+                    l10n.backgroundFollowsThemeSubtitle,
+                    style: const TextStyle(fontSize: 12),
                   ),
                   value: settings.followThemeBackground,
                   onChanged: (v) {
@@ -225,7 +229,7 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
               Vibrate.light();
               (widget.onClose ?? () => Navigator.pop(context))();
             },
-            child: const Text('关闭'),
+            child: Text(l10n.close),
           ),
         ),
       ],
@@ -298,16 +302,16 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
     return Opacity(
       opacity: enabled ? 1.0 : 0.4,
       child: SegmentedButton<Brightness>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: Brightness.light,
-            label: Text('亮色'),
-            icon: Icon(Icons.light_mode),
+            label: Text(l10n.lightMode),
+            icon: const Icon(Icons.light_mode),
           ),
           ButtonSegment(
             value: Brightness.dark,
-            label: Text('深色'),
-            icon: Icon(Icons.dark_mode),
+            label: Text(l10n.darkMode),
+            icon: const Icon(Icons.dark_mode),
           ),
         ],
         selected: {_brightness},
@@ -323,52 +327,14 @@ class _ThemeSettingsDialogState extends ConsumerState<ThemeSettingsDialog> {
   }
 
   Widget _buildColorGrid() {
-    final colors = ThemeSettings.presetThemeColors;
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: List.generate(colors.length, (i) {
-        final isSelected = _colorIndex == i;
-        return GestureDetector(
-          onTap: () {
-            Vibrate.light();
-            setState(() => _colorIndex = i);
-            _applySettings();
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colors[i],
-              shape: BoxShape.circle,
-              border: isSelected
-                  ? Border.all(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 3,
-                    )
-                  : null,
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: colors[i].withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: isSelected
-                ? Icon(
-                    Icons.check,
-                    color: colors[i].computeLuminance() > 0.5
-                        ? Colors.black87
-                        : Colors.white,
-                    size: 20,
-                  )
-                : null,
-          ),
-        );
-      }),
+    return ColorPicker(
+      colors: ThemeSettings.presetThemeColors,
+      selectedIndex: _colorIndex,
+      onColorSelected: (index) {
+        setState(() => _colorIndex = index);
+        _applySettings();
+      },
+      size: 40,
     );
   }
 }

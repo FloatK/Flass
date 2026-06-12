@@ -10,6 +10,7 @@ import '../../data/models/schedule.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/course_provider.dart';
 import '../providers/schedule_provider.dart';
+import '../widgets/app_dialogs.dart';
 import '../widgets/course_detail_bottom_sheet.dart';
 import '../widgets/course_grid_widget.dart';
 import '../widgets/export_import_dialogs.dart';
@@ -26,31 +27,59 @@ class WeekSchedulePage extends ConsumerStatefulWidget {
 }
 
 class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
-  late final PageController _pageController;
-  int _displayedWeek = 1;  // Updated by PageController listener
+  PageController? _pageController;
+  int _displayedWeek = 1;  // Synced with PageController via _onPageScroll
+  int _lastTotalWeeks = 0;  // Track totalWeeks to detect changes
   List<ActionItem> _appBarActionItems = [];
+  List<ActionItem> _allAvailableItems = [];
 
   AppLocalizations get l10n => AppLocalizations.of(context)!;
 
   @override
   void initState() {
     super.initState();
-    final currentWeek = ref.read(currentWeekProvider);
-    _pageController = PageController(initialPage: currentWeek - 1);
-    _displayedWeek = currentWeek;
-    _pageController.addListener(_onPageScroll);
+    // PageController and _displayedWeek are lazily initialized in build()
+    // once currentScheduleProvider has loaded. Initializing them here
+    // would read a stale value from currentWeekProvider (which falls back
+    // to 1 while the schedule is still loading asynchronously).
     _loadAppBarConfig();
   }
 
   @override
   void dispose() {
-    _pageController.removeListener(_onPageScroll);
-    _pageController.dispose();
+    _pageController?.removeListener(_onPageScroll);
+    _pageController?.dispose();
     super.dispose();
   }
 
+  /// Create or recreate the PageController when the schedule is loaded
+  /// or when totalWeeks changes.
+  ///
+  /// Called from build() so that the initial page matches the actual
+  /// current week (after currentScheduleProvider has resolved).
+  void _ensurePageControllerInitialized(Schedule schedule, int currentWeek) {
+    final totalWeeks = schedule.totalWeeks;
+    
+    // If totalWeeks changed, dispose the old controller and recreate
+    if (_pageController != null && _lastTotalWeeks != totalWeeks) {
+      _pageController?.removeListener(_onPageScroll);
+      _pageController?.dispose();
+      _pageController = null;
+    }
+    
+    if (_pageController == null) {
+      final clampedWeek = currentWeek.clamp(1, totalWeeks);
+      _displayedWeek = clampedWeek;
+      _pageController = PageController(initialPage: clampedWeek - 1);
+      _pageController!.addListener(_onPageScroll);
+      _lastTotalWeeks = totalWeeks;
+    }
+  }
+
   void _onPageScroll() {
-    final page = _pageController.page;
+    final controller = _pageController;
+    if (controller == null) return;
+    final page = controller.page;
     if (page == null) return;
     final newWeek = (page.round() + 1).clamp(1, _getTotalWeeks());
     if (newWeek != _displayedWeek) {
@@ -61,7 +90,82 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   Future<void> _loadAppBarConfig() async {
     final items = await AppBarConfig.loadActionItems();
     if (mounted) {
-      setState(() => _appBarActionItems = items);
+      // 创建所有 ActionItem 的覆盖版本（包括不在 AppBar 中的）
+      final allItems = ActionItemRegistry.instance.getAll();
+      final overriddenAll = allItems.map((item) => _overrideItemCallback(item)).toList();
+      final overriddenAppBar = items.map((item) => _overrideItemCallback(item)).toList();
+      setState(() {
+        _appBarActionItems = overriddenAppBar;
+        _allAvailableItems = overriddenAll;
+      });
+    }
+  }
+
+  /// 覆盖需要页面状态的 ActionItem 回调
+  ActionItem _overrideItemCallback(ActionItem item) {
+    switch (item.id) {
+      case 'exportTimetable':
+        return item.copyWith(
+          onPressed: (context) {
+            ExportDialog.show(
+                context, ref.read(courseListProvider).valueOrNull ?? []);
+          },
+        );
+      case 'previousWeek':
+        return item.copyWith(
+          onPressed: (context) {
+            _pageController?.previousPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+        );
+      case 'nextWeek':
+        return item.copyWith(
+          onPressed: (context) {
+            _pageController?.nextPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+        );
+      case 'goToCurrentWeek':
+        return item.copyWith(
+          onPressed: (context) {
+            final currentWeek = ref.read(currentWeekProvider);
+            _pageController?.animateToPage(
+              currentWeek - 1,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+        );
+      case 'themeSettings':
+        return item.copyWith(
+          onPressed: (context) {
+            _showThemeSettingsOverlay(context);
+          },
+        );
+      case 'swapCourse':
+        return item.copyWith(
+          onPressed: (context) {
+            final courses =
+                ref.read(courseListProvider).valueOrNull ?? [];
+            final schedule =
+                ref.read(currentScheduleProvider).valueOrNull;
+            final startDate = schedule?.startDate;
+            if (startDate != null) {
+              SwapCourseDialog.show(
+                context,
+                courses,
+                _displayedWeek,
+                DateTime.parse(startDate),
+              );
+            }
+          },
+        );
+      default:
+        return item;
     }
   }
 
@@ -87,11 +191,19 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   @override
   Widget build(BuildContext context) {
     final courseListAsync = ref.watch(courseListProvider);
-    final currentWeek = ref.watch(currentWeekProvider);
+    final scheduleAsync = ref.watch(currentScheduleProvider);
     ref.watch(scheduleListProvider);
-    ref.watch(currentScheduleProvider);
+    final schedule = scheduleAsync.valueOrNull;
+    final currentWeek = ref.watch(currentWeekProvider);
 
-    final schedule = ref.watch(currentScheduleProvider).valueOrNull;
+    // Lazy-init the PageController once the schedule has loaded.
+    // This must run in build (not initState) because currentWeekProvider
+    // depends on the async currentScheduleProvider, which is not yet
+    // resolved when initState runs.
+    if (schedule != null) {
+      _ensurePageControllerInitialized(schedule, currentWeek);
+    }
+
     final totalWeeks = schedule?.totalWeeks ?? 20;
     final displayedWeek = _displayedWeek;
     final isCurrentWeek = displayedWeek == currentWeek;
@@ -159,10 +271,10 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
         ..._appBarActionItems.take(ActionItem.maxAppBarItems).map(
               (item) => IconButton(
                 icon: Icon(item.icon, size: 20),
-                tooltip: item.displayName,
+                tooltip: item.displayNameBuilder(context),
                 onPressed: () {
                   Vibrate.light();
-                  _handleAppBarAction(context, item);
+                  item.onPressed(context);
                 },
               ),
             ),
@@ -243,7 +355,32 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
             ),
           );
         }
-        final semesterStart = DateTime.parse(startDate);
+        final semesterStart = DateTime.tryParse(startDate);
+        if (semesterStart == null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.startDateNotSet,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${l10n.startDateNotSetHint}\n($startDate)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
         return PageView.builder(
           controller: _pageController,
           itemCount: totalWeeks,
@@ -312,33 +449,13 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     });
   }
 
-  void _confirmDelete(Course course) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.confirmDeleteTitle),
-        content: Text('${l10n.confirmDeleteMessage}"${course.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Vibrate.light();
-              Navigator.pop(ctx);
-            },
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Vibrate.light();
-              Navigator.pop(ctx);
-              await ref
-                  .read(courseListProvider.notifier)
-                  .deleteCourse(course.id);
-            },
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+  Future<void> _confirmDelete(Course course) async {
+    final confirmed = await AppDialogs.confirmDelete(
+      context,
+      itemName: course.name,
     );
+    if (!confirmed || !mounted) return;
+    await ref.read(courseListProvider.notifier).deleteCourse(course.id);
   }
 
   // ---------------------------------------------------------------------------
@@ -359,72 +476,28 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
     );
   }
 
-  void _handleAppBarAction(BuildContext context, ActionItem item) {
-    switch (item) {
-      case ActionItem.importTimetable:
-        context.push('/import');
-      case ActionItem.exportTimetable:
-        ExportDialog.show(context,
-            ref.read(courseListProvider).valueOrNull ?? []);
-      case ActionItem.importJson:
-        ImportFromTextDialog.show(context);
-      case ActionItem.previousWeek:
-        _pageController.previousPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      case ActionItem.nextWeek:
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      case ActionItem.goToCurrentWeek:
-        final currentWeek = ref.read(currentWeekProvider);
-        _pageController.animateToPage(
-          currentWeek - 1,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      case ActionItem.selectTimetable:
-        context.push('/schedules');
-      case ActionItem.themeSettings:
-        _showThemeSettingsOverlay(context);
-      case ActionItem.swapCourse:
-        final courses = ref.read(courseListProvider).valueOrNull ?? [];
-        final schedule = ref.read(currentScheduleProvider).valueOrNull;
-        final startDate = schedule?.startDate;
-        if (startDate != null) {
-          SwapCourseDialog.show(
-            context,
-            courses,
-            _displayedWeek,
-            DateTime.parse(startDate),
-          );
-        }
-    }
-  }
-
   void _showSchedulePopup(BuildContext context) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: '',
-      pageBuilder: (ctx, _, __) => SchedulePopup(
+      pageBuilder: (ctx, _, _) => SchedulePopup(
         displayedWeek: _getDisplayedWeek(),
         totalWeeks: _getTotalWeeks(),
         onWeekChanged: (week) {
-          _pageController.animateToPage(
+          _pageController?.animateToPage(
             week - 1,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
         },
         appBarItems: _appBarActionItems,
+        allAvailableItems: _allAvailableItems,
         onConfigChanged: () {
           _loadAppBarConfig();
           setState(() {});
         },
-        onActionItem: (item) => _handleAppBarAction(context, item),
+        onActionItem: (item) => item.onPressed(context),
       ),
     );
   }

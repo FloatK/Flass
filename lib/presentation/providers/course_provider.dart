@@ -20,7 +20,7 @@ class CourseList extends _$CourseList {
     return scheduleAsync.when(
       data: (schedule) => repo.watchAllCourses(scheduleId: schedule.id),
       loading: () => repo.watchAllCourses(),
-      error: (_, __) => repo.watchAllCourses(),
+      error: (_, _) => repo.watchAllCourses(),
     );
   }
 

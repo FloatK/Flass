@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/l10n_utils.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/vibrate.dart';
 import '../../data/models/schedule.dart';
@@ -25,19 +26,6 @@ class _ScheduleEditPageState extends ConsumerState<ScheduleEditPage> {
 
   AppLocalizations get l10n => AppLocalizations.of(context)!;
 
-  String _getDayLabel(int index) {
-    switch (index) {
-      case 0: return l10n.mon;
-      case 1: return l10n.tue;
-      case 2: return l10n.wed;
-      case 3: return l10n.thu;
-      case 4: return l10n.fri;
-      case 5: return l10n.sat;
-      case 6: return l10n.sun;
-      default: return '';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -50,7 +38,7 @@ class _ScheduleEditPageState extends ConsumerState<ScheduleEditPage> {
       text: widget.schedule.startDate ?? '',
     );
     _totalWeeksController = TextEditingController(
-      text: (widget.schedule.totalWeeks ?? 20).toString(),
+      text: widget.schedule.totalWeeks.toString(),
     );
   }
 
@@ -111,7 +99,7 @@ class _ScheduleEditPageState extends ConsumerState<ScheduleEditPage> {
               final day = i + 1;
               final selected = _selectedWeekdays.contains(day);
               return FilterChip(
-                label: Text(_getDayLabel(i)),
+                label: Text(L10nUtils.getDayLabelByIndex(l10n, i)),
                 selected: selected,
                 onSelected: (v) {
                   setState(() {
@@ -214,14 +202,13 @@ class _ScheduleEditPageState extends ConsumerState<ScheduleEditPage> {
     );
 
     try {
-      // 使用 CurrentSchedule.updateSchedule() 同时更新 DB 和 Provider 状态
       await ref.read(currentScheduleProvider.notifier).updateSchedule(updated);
       ref.invalidate(scheduleListProvider);
-      if (context.mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      Navigator.pop(context, true);
     } catch (e) {
-      if (context.mounted) {
-        showAppSnackBar(context, '${l10n.saveFailed}: $e', isError: true);
-      }
+      if (!mounted) return;
+      showAppSnackBar(context, '${l10n.saveFailed}: $e', isError: true);
     }
   }
 }

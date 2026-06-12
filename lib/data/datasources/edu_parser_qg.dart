@@ -1,8 +1,8 @@
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
-import '../../core/utils/week_utils.dart';
 import 'edu_parser.dart';
+import 'edu_parser_mixin.dart';
 
 /// Parser for 青果教务系统 schedule tables.
 ///
@@ -26,7 +26,7 @@ import 'edu_parser.dart';
 ///   </tr>
 /// </table>
 /// ```
-class QingGuoEduParser extends EduParser {
+class QingGuoEduParser extends EduParser with EduParserMixin {
   const QingGuoEduParser();
 
   @override
@@ -92,7 +92,7 @@ class QingGuoEduParser extends EduParser {
     final results = <ParsedCourse>[];
 
     // 青果系统中，一个单元格可能包含多个课程（用分隔线或空行隔开）
-    final blocks = _splitCellBlocks(cell.innerHtml);
+    final blocks = splitCellBlocks(cell.innerHtml);
 
     for (final block in blocks) {
       final course = _parseSingleBlock(block, dayIndex, rowIndex);
@@ -101,36 +101,11 @@ class QingGuoEduParser extends EduParser {
     return results;
   }
 
-  List<String> _splitCellBlocks(String html) {
-    // 按分隔线或多个 <br> 分割
-    final blocks = <String>[];
-    final parts = html.split(RegExp(r'-{5,}|<hr\s*/?>|(<br\s*/?>){2,}',
-        caseSensitive: false));
-
-    for (final part in parts) {
-      final trimmed = part.trim();
-      if (trimmed.isNotEmpty && trimmed != '<br>') {
-        blocks.add(trimmed);
-      }
-    }
-    return blocks;
-  }
-
   ParsedCourse? _parseSingleBlock(String html, int dayIndex, int rowIndex) {
-    // 按 <br> 或 <p> 分割
-    final lines = html
-        .split(RegExp(r'<br\s*/?>|</?p>|</?div>', caseSensitive: false))
-        .map((line) => line
-            .replaceAll(RegExp(r'<[^>]*>'), '')
-            .replaceAll('&nbsp;', ' ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
+    final lines = extractTextLines(html);
     if (lines.isEmpty) return null;
 
-    // 解析字段
+    // Parse fields using heuristics
     String name = '';
     String teacher = '';
     String location = '';
@@ -149,16 +124,17 @@ class QingGuoEduParser extends EduParser {
     }
 
     if (name.isEmpty) return null;
+    name = cleanCourseName(name);
 
-    // 解析周次
-    int startPeriod = _getPeriodFromRowIndex(rowIndex);
+    // Parse weeks
+    int startPeriod = rowIndex + 1;
     int duration = 1;
     List<int> weeks = [];
     String singleOrDouble = 'all';
 
     if (weeksStr.isNotEmpty) {
-      weeks = _parseWeeks(weeksStr);
-      singleOrDouble = _parseSingleOrDouble(weeksStr);
+      weeks = parseWeeks(weeksStr);
+      singleOrDouble = parseSingleOrDouble(weeksStr);
     }
 
     return ParsedCourse(
@@ -178,14 +154,12 @@ class QingGuoEduParser extends EduParser {
   }
 
   bool _isWeekInfo(String text) {
-    // 匹配 "1-16周"、"单周"、"双周"、"1,3,5周" 等格式
     return RegExp(r'^\d[\d,\-~]+周$').hasMatch(text) ||
         RegExp(r'^[单双]周$').hasMatch(text) ||
         RegExp(r'^第?\d[\d,\-~]+周$').hasMatch(text);
   }
 
   bool _isTeacher(String text, String courseName) {
-    // 教师通常是2-4个汉字，且不是课程名
     if (text == courseName) return false;
     return RegExp(r'^[\u4e00-\u9fa5]{2,4}$').hasMatch(text) &&
         !_isWeekInfo(text) &&
@@ -193,27 +167,6 @@ class QingGuoEduParser extends EduParser {
   }
 
   bool _isLocation(String text) {
-    // 教室通常包含楼、室、号等关键字
     return RegExp(r'[楼室号楼栋]|[\d]{3,}|[A-Z]\d{3}').hasMatch(text);
-  }
-
-  int _getPeriodFromRowIndex(int rowIndex) {
-    // 根据行索引估算节次（青果系统通常每行对应一个时间段）
-    return rowIndex + 1;
-  }
-
-  static List<int> _parseWeeks(String weeksStr) {
-    // 清理周次字符串
-    final cleaned = weeksStr
-        .replaceAll(RegExp(r'[周第\s]'), '')
-        .replaceAll('单', '')
-        .replaceAll('双', '');
-    return WeekUtils.parseWeeks(cleaned);
-  }
-
-  static String _parseSingleOrDouble(String weeksStr) {
-    if (weeksStr.contains('单')) return 'single';
-    if (weeksStr.contains('双')) return 'double';
-    return 'all';
   }
 }

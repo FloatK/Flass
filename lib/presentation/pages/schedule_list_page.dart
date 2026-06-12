@@ -8,6 +8,7 @@ import '../../core/utils/vibrate.dart';
 import '../../data/models/schedule.dart';
 import '../../l10n/app_localizations.dart';
 import '../providers/schedule_provider.dart';
+import '../widgets/app_dialogs.dart';
 import 'schedule_edit_page.dart';
 
 class ScheduleListPage extends ConsumerWidget {
@@ -111,27 +112,10 @@ class ScheduleListPage extends ConsumerWidget {
 
   Future<void> _createSchedule(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
-    final nameCtrl = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.newSchedule),
-        content: TextField(
-          controller: nameCtrl,
-          decoration: InputDecoration(hintText: l10n.scheduleName),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () { Vibrate.light(); Navigator.pop(ctx); },
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () { Vibrate.light(); Navigator.pop(ctx, nameCtrl.text.trim()); },
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+    final result = await AppDialogs.textInput(
+      context,
+      title: l10n.newSchedule,
+      hint: l10n.scheduleName,
     );
     if (result == null || result.isEmpty) return;
     final newSchedule = Schedule(
@@ -143,37 +127,20 @@ class ScheduleListPage extends ConsumerWidget {
     ref.invalidate(scheduleListProvider);
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, Schedule s) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.confirmDeleteTitle),
-        content: Text('${l10n.confirmDeleteMessage}「${s.name}」吗？'),
-        actions: [
-          TextButton(
-            onPressed: () { Vibrate.light(); Navigator.pop(ctx); },
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Vibrate.light();
-              try {
-                await ref.read(scheduleRepositoryProvider).deleteSchedule(s.id);
-                ref.invalidate(scheduleListProvider);
-                ref.invalidate(currentScheduleProvider);
-                if (ctx.mounted) Navigator.pop(ctx);
-              } catch (e) {
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                  showAppSnackBar(context, '$e', isError: true);
-                }
-              }
-            },
-            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Schedule s) async {
+    final confirmed = await AppDialogs.confirmDelete(
+      context,
+      itemName: s.name,
     );
+    if (!confirmed || !context.mounted) return;
+    try {
+      await ref.read(scheduleRepositoryProvider).deleteSchedule(s.id);
+      ref.invalidate(scheduleListProvider);
+      ref.invalidate(currentScheduleProvider);
+    } catch (e) {
+      if (context.mounted) {
+        showAppSnackBar(context, '$e', isError: true);
+      }
+    }
   }
 }

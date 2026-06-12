@@ -1,17 +1,17 @@
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
-import '../../core/utils/week_utils.dart';
 import 'edu_parser.dart';
+import 'edu_parser_mixin.dart';
 
 /// Parser for 强智教务系统 schedule tables.
 ///
 /// Table has id="kbtable". Each cell contains div.kbcontent with:
-///   code<br>name<br><font title="老师">teacher</font><br>
-///   <font title="周次(节次)">weeks(周)[periods节]</font><br>
-///   [<font title="教室">location</font><br>]
+///   code`<br>`name`<br>``<font title="老师">`teacher`</font>``<br>`
+///   `<font title="周次(节次)">`weeks(周)[periods节]`</font>``<br>`
+///   [`<font title="教室">`location`</font>``<br>`]
 /// Multiple courses in one cell are separated by "---------------------"
-class QiangZhiEduParser extends EduParser {
+class QiangZhiEduParser extends EduParser with EduParserMixin {
   const QiangZhiEduParser();
 
   @override
@@ -75,54 +75,18 @@ class QiangZhiEduParser extends EduParser {
   }
 
   ParsedCourse? _parseSingleBlock(String html, int dayIndex, int periodBlock) {
-    // Split by <br> and strip tags for text content
-    final lines = html
-        .split(RegExp(r'<br\s*/?>', caseSensitive: false))
-        .map((line) => line
-            .replaceAll(RegExp(r'<[^>]*>'), '')
-            .replaceAll('&nbsp;', ' ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
+    final lines = extractTextLines(html);
     if (lines.isEmpty) return null;
 
-    // Parse with tag-aware approach for key fields
-    final doc = html_parser.parseFragment(html);
+    // Extract structured data from font tags
+    final fontData = parseFontTags(html);
+    final teacher = fontData['teacher'] ?? '';
+    final weeksStr = fontData['weeks'] ?? '';
+    final location = fontData['location'] ?? '';
 
-    // Extract teacher, weeks/periods, location from font tags
-    String teacher = '';
-    String weeksStr = '';
-    String location = '';
-
-    final fonts = doc.querySelectorAll('font');
-    for (final font in fonts) {
-      final title = font.attributes['title'] ?? '';
-      final text = font.text.trim();
-      if (title == '老师') {
-        teacher = text;
-      } else if (title.contains('周次')) {
-        weeksStr = text;
-      } else if (title == '教室') {
-        location = text;
-      }
-    }
-
-    // Course name is the first non-code, non-empty line after stripping tags
-    String name = '';
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
-      // Skip lines that look like course codes (e.g., "002976-080345D")
-      if (_isCourseCode(line)) continue;
-      name = line;
-      break;
-    }
-
+    // Find course name (skip course codes)
+    final name = findCourseName(lines);
     if (name.isEmpty) return null;
-
-    // Strip trailing red P/O markers (e.g., "高等数学 P" → "高等数学")
-    name = name.replaceAll(RegExp(r'\s+[PO]$'), '').trim();
 
     // Parse weeks and periods
     int startPeriod = 1;
@@ -131,23 +95,20 @@ class QiangZhiEduParser extends EduParser {
     String singleOrDouble = 'all';
 
     if (weeksStr.isNotEmpty) {
-      weeks = _parseWeeks(weeksStr);
-      singleOrDouble = _parseSingleOrDouble(weeksStr);
+      weeks = parseWeeks(weeksStr);
+      singleOrDouble = parseSingleOrDouble(weeksStr);
       // Try to extract periods from [XX-YY节] or [XX节]
-      final periodMatch =
-          RegExp(r'\[(\d+)(?:-(\d+))?节\]').firstMatch(weeksStr);
-      if (periodMatch != null) {
-        startPeriod = int.tryParse(periodMatch.group(1)!) ?? 1;
-        final end = int.tryParse(periodMatch.group(2) ?? '') ?? startPeriod;
-        duration = end - startPeriod + 1;
+      final periods = extractPeriods(weeksStr);
+      if (periods != null) {
+        startPeriod = periods.$1;
+        duration = periods.$2;
       } else {
-        // Fallback: use period block position (each block = 2 periods)
-        startPeriod = periodBlock * 2 + 1;
+        // Fallback: use period block position
+        startPeriod = periodFromRowIndex(periodBlock);
         duration = 2;
       }
     } else {
-      // No weeks info — use period block position
-      startPeriod = periodBlock * 2 + 1;
+      startPeriod = periodFromRowIndex(periodBlock);
       duration = 2;
     }
 
@@ -165,23 +126,5 @@ class QiangZhiEduParser extends EduParser {
         ),
       ],
     );
-  }
-
-  bool _isCourseCode(String text) {
-    // Course codes look like "002976-080345D" or "C12345"
-    return RegExp(r'^[A-Za-z0-9]{2,}-[A-Za-z0-9]{2,}$').hasMatch(text) ||
-        RegExp(r'^[A-Z]\d{5,}$').hasMatch(text);
-  }
-
-  static List<int> _parseWeeks(String weeksStr) {
-    // Extract only the weeks portion: everything before '(' or '['
-    final match = RegExp(r'^([^(\[]+)').firstMatch(weeksStr);
-    final weeksOnly =
-        (match?.group(1) ?? weeksStr).replaceAll(RegExp(r'[周单双全\s]'), '');
-    return WeekUtils.parseWeeks(weeksOnly);
-  }
-
-  static String _parseSingleOrDouble(String weeksStr) {
-    return WeekUtils.parseSingleOrDouble(weeksStr);
   }
 }

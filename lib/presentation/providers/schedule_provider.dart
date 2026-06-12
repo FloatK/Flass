@@ -31,7 +31,21 @@ class CurrentSchedule extends _$CurrentSchedule {
 
     // 回退到默认课表
     final defaultSched = await repo.getDefaultSchedule();
-    return defaultSched!;
+    if (defaultSched != null) return defaultSched;
+
+    // 如果没有默认课表，尝试获取任意一个课表
+    final allSchedules = await repo.getAllSchedules();
+    if (allSchedules.isNotEmpty) return allSchedules.first;
+
+    // 如果完全没有课表，创建一个新的默认课表
+    final newSchedule = Schedule(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: '默认课表',
+      isDefault: true,
+      createdAt: DateTime.now(),
+    );
+    await repo.createSchedule(newSchedule);
+    return newSchedule;
   }
 
   Future<void> switchSchedule(Schedule schedule) async {

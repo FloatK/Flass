@@ -123,6 +123,116 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
     return EduSystemSelectionDialog.show(context, parsers);
   }
 
+  /// 显示导入流程指南对话框
+  void _showImportGuide(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.help_outline, size: 24),
+            const SizedBox(width: 8),
+            Text(l10n.importGuideTitle),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGuideStep(1, l10n.importGuideStep1Title, l10n.importGuideStep1Desc),
+              const SizedBox(height: 16),
+              _buildGuideStep(2, l10n.importGuideStep2Title, l10n.importGuideStep2Desc),
+              const SizedBox(height: 16),
+              _buildGuideStep(3, l10n.importGuideStep3Title, l10n.importGuideStep3Desc),
+              const SizedBox(height: 16),
+              _buildGuideStep(4, l10n.importGuideStep4Title, l10n.importGuideStep4Desc),
+              const SizedBox(height: 16),
+              _buildGuideStep(5, l10n.importGuideStep5Title, l10n.importGuideStep5Desc),
+              const Divider(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.importGuideTip,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () { Vibrate.light(); Navigator.pop(ctx); },
+            child: Text(l10n.gotIt),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(int step, String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '$step',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showImportDialog(List<ParsedCourse> parsedCourses) {
     final uuid = const Uuid();
     // 按课程名称分配颜色：同名课程使用相同颜色，不同名课程尽量不同
@@ -176,6 +286,11 @@ class _ImportSchedulePageState extends ConsumerState<ImportSchedulePage> {
       appBar: AppBar(
         title: Text(l10n.importFromEdu),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, size: 20),
+            tooltip: l10n.importHelpTooltip,
+            onPressed: () { Vibrate.light(); _showImportGuide(context); },
+          ),
           TextButton.icon(
             onPressed: isParsing ? null : () { Vibrate.light(); _parseSchedule(); },
             icon: const Icon(Icons.download, size: 18),

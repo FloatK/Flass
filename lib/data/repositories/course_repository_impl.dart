@@ -1,10 +1,9 @@
 import 'dart:async';
-
-import 'package:drift/drift.dart' as drift;
+import 'dart:convert';
 
 import '../../core/utils/week_utils.dart';
 import '../../domain/repositories/course_repository.dart';
-import '../datasources/database.dart' hide Course, TimeDetail;
+import '../datasources/database.dart';
 import '../models/course.dart';
 
 class CourseRepositoryImpl implements CourseRepository {
@@ -33,6 +32,7 @@ class CourseRepositoryImpl implements CourseRepository {
         course.color,
         _timeDetailsToCompanions(course.timeDetails),
         scheduleId: scheduleId,
+        metadata: jsonEncode(course.metadata),
       );
     } catch (e) {
       throw CourseRepositoryException('添加课程失败: $e');
@@ -49,6 +49,7 @@ class CourseRepositoryImpl implements CourseRepository {
         course.location,
         course.color,
         _timeDetailsToCompanions(course.timeDetails),
+        metadata: jsonEncode(course.metadata),
       );
     } catch (e) {
       throw CourseRepositoryException('更新课程失败: $e');
@@ -75,6 +76,16 @@ class CourseRepositoryImpl implements CourseRepository {
 
   List<Course> _mapToCourses(List<CourseWithDetails> rows) {
     return rows.map((row) {
+      // 解析 metadata JSON
+      Map<String, dynamic> metadata = {};
+      try {
+        if (row.course.metadata.isNotEmpty) {
+          metadata = jsonDecode(row.course.metadata) as Map<String, dynamic>;
+        }
+      } catch (e) {
+        // JSON 解析失败，使用空 Map
+      }
+
       return Course(
         id: row.course.id,
         name: row.course.name,
@@ -90,6 +101,7 @@ class CourseRepositoryImpl implements CourseRepository {
             singleOrDouble: td.singleOrDouble,
           );
         }).toList(),
+        metadata: metadata,
       );
     }).toList();
   }
@@ -98,15 +110,14 @@ class CourseRepositoryImpl implements CourseRepository {
       List<TimeDetail> details) {
     return details.map((td) {
       return TimeDetailsCompanion(
-        dayOfWeek: drift.Value(td.dayOfWeek),
-        startPeriod: drift.Value(td.startPeriod),
-        duration: drift.Value(td.duration),
-        weeks: drift.Value(td.weeks.join(',')),
-        singleOrDouble: drift.Value(td.singleOrDouble),
+        dayOfWeek: td.dayOfWeek,
+        startPeriod: td.startPeriod,
+        duration: td.duration,
+        weeks: td.weeks.join(','),
+        singleOrDouble: td.singleOrDouble,
       );
     }).toList();
   }
-
 }
 
 class CourseRepositoryException implements Exception {

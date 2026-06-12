@@ -171,7 +171,7 @@ class _ImportChoiceDialogState extends ConsumerState<_ImportChoiceDialog> {
       barrierDismissible: false,
       builder: (_) => _SemesterConfigDialog(
         initialDate: currentSchedule?.startDate != null
-            ? DateTime.parse(currentSchedule!.startDate!)
+            ? (DateTime.tryParse(currentSchedule!.startDate!) ?? DateTime.now())
             : DateTime.now(),
         initialWeeks: currentSchedule?.totalWeeks ?? 20,
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/utils/l10n_utils.dart';
 import '../../core/utils/vibrate.dart';
 import '../../core/utils/week_utils.dart';
 import '../../data/models/course.dart';
@@ -147,7 +148,7 @@ class CourseDetailBottomSheet extends StatelessWidget {
   }
 
   String _formatTimeDetail(AppLocalizations l10n, TimeDetail td) {
-    final dayLabel = _getDayLabel(l10n, td.dayOfWeek);
+    final dayLabel = L10nUtils.getDayLabel(l10n, td.dayOfWeek);
     final endPeriod = td.startPeriod + td.duration - 1;
     final periodRange =
         td.duration > 1 ? '${td.startPeriod}-$endPeriod' : '${td.startPeriod}';
@@ -156,7 +157,7 @@ class CourseDetailBottomSheet extends StatelessWidget {
         : td.singleOrDouble == 'double'
             ? l10n.doubleWeek
             : '';
-    final weeksStr = WeekUtils.formatWeeks(td.weeks);
+    final weeksStr = WeekUtils.formatWeeks(td.weeks, everyWeekLabel: l10n.everyWeek);
 
     final parts = [
       '$dayLabel ${l10n.weekLabel}$periodRange${l10n.weekSuffix}',
@@ -164,18 +165,5 @@ class CourseDetailBottomSheet extends StatelessWidget {
       if (modeStr.isNotEmpty) modeStr,
     ];
     return parts.join(' | ');
-  }
-
-  String _getDayLabel(AppLocalizations l10n, int dayOfWeek) {
-    switch (dayOfWeek) {
-      case 1: return l10n.mon;
-      case 2: return l10n.tue;
-      case 3: return l10n.wed;
-      case 4: return l10n.thu;
-      case 5: return l10n.fri;
-      case 6: return l10n.sat;
-      case 7: return l10n.sun;
-      default: return '';
-    }
   }
 }

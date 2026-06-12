@@ -1,29 +1,24 @@
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/course.dart';
-import 'export_utils.dart';
+import 'format_registry.dart';
 
 /// 纯 Dart 课表导入工具类，不依赖 UI 上下文或 Riverpod ref。
+///
+/// 使用 [FormatRegistry] 进行格式检测和解码。
+/// 添加新格式只需在 [FormatRegistry] 中注册即可。
 class ImportUtils {
   ImportUtils._();
 
-  /// 解析紧凑码或 JSON 字符串，返回课程列表。
+  /// 解析导入数据，返回课程列表。
   ///
-  /// 支持两种格式：
-  /// 1. 紧凑码（Base64 + GZip 压缩）
-  /// 2. 标准 JSON 数组
-  ///
+  /// 自动检测格式并解码。
   /// 返回 null 表示格式无效。
   static List<Course>? parseImportData(String text) {
     if (text.isEmpty) return null;
 
     try {
-      if (ExportUtils.isCompactFormat(text)) {
-        return ExportUtils.compactDecode(text);
-      } else if (ExportUtils.isValidScheduleJson(text)) {
-        return ExportUtils.importFromJson(text);
-      }
-      return null;
+      return FormatRegistry.instance.decode(text);
     } catch (e) {
       rethrow;
     }
@@ -55,5 +50,15 @@ class ImportUtils {
     final courses = parseImportData(extracted);
     if (courses == null) return null;
     return assignFreshIds(courses);
+  }
+
+  /// 获取所有可用的导入格式
+  static List<DataFormat> getAvailableFormats() {
+    return FormatRegistry.instance.getAll();
+  }
+
+  /// 使用指定格式编码课程
+  static String encodeWithFormat(String formatName, List<Course> courses) {
+    return FormatRegistry.instance.encode(formatName, courses);
   }
 }

@@ -1,111 +1,54 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/vibrate.dart';
+import '../../data/models/theme_settings.dart';
 
-class ThemeSettings {
-  final bool followSystem;
-  final Brightness brightness;
-  final int colorIndex;
-  final double cornerRadius;
-  final double blockHeight;
-  final double courseSpacing;
-  final double horizontalSpacing;
-  final double colorLightness;
-  // Background settings
-  final bool followThemeBackground;
-  // Vibration settings
-  final bool vibrationEnabled;
+// 重新导出 ThemeSettings，保持向后兼容
+export '../../data/models/theme_settings.dart';
 
-  const ThemeSettings({
-    this.followSystem = true,
-    this.brightness = Brightness.light,
-    this.colorIndex = 0,
-    this.cornerRadius = 10.0,
-    this.blockHeight = 70.0,
-    this.courseSpacing = 3.0,
-    this.horizontalSpacing = 2.0,
-    this.colorLightness = 1.2,
-    this.followThemeBackground = true,
-    this.vibrationEnabled = true,
-  });
+const _kThemeSettingsKey = 'theme_settings_json';
 
-  ThemeSettings copyWith({
-    bool? followSystem,
-    Brightness? brightness,
-    int? colorIndex,
-    double? cornerRadius,
-    double? blockHeight,
-    double? courseSpacing,
-    double? horizontalSpacing,
-    double? colorLightness,
-    bool? followThemeBackground,
-    bool? vibrationEnabled,
-  }) {
-    return ThemeSettings(
-      followSystem: followSystem ?? this.followSystem,
-      brightness: brightness ?? this.brightness,
-      colorIndex: colorIndex ?? this.colorIndex,
-      cornerRadius: cornerRadius ?? this.cornerRadius,
-      blockHeight: blockHeight ?? this.blockHeight,
-      courseSpacing: courseSpacing ?? this.courseSpacing,
-      horizontalSpacing: horizontalSpacing ?? this.horizontalSpacing,
-      colorLightness: colorLightness ?? this.colorLightness,
-      followThemeBackground: followThemeBackground ?? this.followThemeBackground,
-      vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
-    );
-  }
-
-  /// 获取课表底板背景色
-  /// [colorScheme] 当前主题配色
-  /// [isDark] 当前是否为深色模式
-  Color getGridBackgroundColor(ColorScheme colorScheme, bool isDark) {
-    if (!followThemeBackground) {
-      // 默认行为：浅色模式白色，深色模式深灰
-      return isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    }
-
-    // 跟随主题色模式
-    final hsl = HSLColor.fromColor(colorScheme.primary);
-    if (isDark) {
-      // 深色模式：主色压暗（降低亮度和饱和度）
-      return hsl
-          .withSaturation((hsl.saturation * 0.7).clamp(0.0, 1.0))
-          .withLightness(0.08)
-          .toColor();
-    } else {
-      // 浅色模式：主色高亮（高亮度）
-      return hsl.withLightness(0.95).toColor();
-    }
-  }
-
-  /// 获取深色模式下的课程颜色（自动压暗）
-  Color getDarkModeCourseColor(int colorValue) {
-    final baseColor = Color(colorValue);
-    final hsl = HSLColor.fromColor(baseColor);
-    return hsl
-        .withSaturation(
-            (hsl.saturation * 0.6).clamp(0.0, 1.0))
-        .withLightness(
-            (hsl.lightness * 0.4).clamp(0.0, 1.0))
-        .toColor();
-  }
-
-  static const List<Color> presetThemeColors = [
-    Color(0xFF1565C0), // 蓝色
-    Color(0xFFD32F2F), // 红色
-    Color(0xFF2E7D32), // 绿色
-    Color(0xFF6A1B9A), // 紫色
-    Color(0xFFE65100), // 橙色
-    Color(0xFFAD1457), // 粉色
-    Color(0xFF00838F), // 青色
-    Color(0xFF4E342E), // 棕色
-  ];
-}
-
+/// 从 SharedPreferences 加载主题设置
+///
+/// 使用 JSON 序列化，添加新字段无需修改此函数。
 Future<ThemeSettings> loadThemeSettings() async {
   final prefs = await SharedPreferences.getInstance();
+  final jsonStr = prefs.getString(_kThemeSettingsKey);
+
+  ThemeSettings settings;
+  if (jsonStr != null) {
+    try {
+      final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+      settings = ThemeSettings.fromJson(json);
+    } catch (e) {
+      // JSON 解析失败，使用默认值
+      settings = const ThemeSettings();
+    }
+  } else {
+    // 首次启动，尝试从旧格式迁移
+    settings = await _migrateFromLegacyFormat(prefs);
+  }
+
+  Vibrate.setEnabled(settings.vibrationEnabled);
+  return settings;
+}
+
+/// 保存主题设置到 SharedPreferences
+///
+/// 使用 JSON 序列化，添加新字段无需修改此函数。
+Future<void> saveThemeSettings(ThemeSettings settings) async {
+  final prefs = await SharedPreferences.getInstance();
+  final jsonStr = jsonEncode(settings.toJson());
+  await prefs.setString(_kThemeSettingsKey, jsonStr);
+  Vibrate.setEnabled(settings.vibrationEnabled);
+}
+
+/// 从旧格式迁移（兼容旧版本）
+Future<ThemeSettings> _migrateFromLegacyFormat(SharedPreferences prefs) async {
   final settings = ThemeSettings(
     followSystem: prefs.getBool('theme_follow_system') ?? true,
     brightness: prefs.getString('theme_brightness') == 'dark'
@@ -117,31 +60,30 @@ Future<ThemeSettings> loadThemeSettings() async {
     courseSpacing: prefs.getDouble('theme_course_spacing') ?? 3.0,
     horizontalSpacing: prefs.getDouble('theme_horizontal_spacing') ?? 2.0,
     colorLightness: prefs.getDouble('theme_color_lightness') ?? 1.2,
-    followThemeBackground: prefs.getBool('theme_follow_theme_background') ?? true,
+    followThemeBackground:
+        prefs.getBool('theme_follow_theme_background') ?? true,
     vibrationEnabled: prefs.getBool('theme_vibration_enabled') ?? true,
   );
-  Vibrate.setEnabled(settings.vibrationEnabled);
+
+  // 迁移后立即保存为新格式
+  await saveThemeSettings(settings);
+
+  // 清除旧格式的 keys
+  prefs.remove('theme_follow_system');
+  prefs.remove('theme_brightness');
+  prefs.remove('theme_color_index');
+  prefs.remove('theme_corner_radius');
+  prefs.remove('theme_block_height');
+  prefs.remove('theme_course_spacing');
+  prefs.remove('theme_horizontal_spacing');
+  prefs.remove('theme_color_lightness');
+  prefs.remove('theme_follow_theme_background');
+  prefs.remove('theme_vibration_enabled');
+
   return settings;
 }
 
-Future<void> saveThemeSettings(ThemeSettings settings) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('theme_follow_system', settings.followSystem);
-  await prefs.setString(
-    'theme_brightness',
-    settings.brightness == Brightness.dark ? 'dark' : 'light',
-  );
-  await prefs.setInt('theme_color_index', settings.colorIndex);
-  await prefs.setDouble('theme_corner_radius', settings.cornerRadius);
-  await prefs.setDouble('theme_block_height', settings.blockHeight);
-  await prefs.setDouble('theme_course_spacing', settings.courseSpacing);
-  await prefs.setDouble('theme_horizontal_spacing', settings.horizontalSpacing);
-  await prefs.setDouble('theme_color_lightness', settings.colorLightness);
-  await prefs.setBool('theme_follow_theme_background', settings.followThemeBackground);
-  await prefs.setBool('theme_vibration_enabled', settings.vibrationEnabled);
-  Vibrate.setEnabled(settings.vibrationEnabled);
-}
-
+/// 主题设置 Provider
 final themeSettingsProvider = StateProvider<ThemeSettings>((ref) {
   throw UnimplementedError('Must be overridden from main');
 });

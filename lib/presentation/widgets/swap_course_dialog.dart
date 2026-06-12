@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/l10n_utils.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/vibrate.dart';
 import '../../data/models/course.dart';
@@ -141,26 +142,7 @@ class _SwapCourseDialogState extends ConsumerState<SwapCourseDialog> {
   }
 
   String _formatDate(DateTime date) {
-    final locale = _getLocale();
-    final weekday = _getWeekdayName(date.weekday, locale);
-    return '${date.month}/${date.day} ($weekday)';
-  }
-
-  String _getWeekdayName(int weekday, Locale locale) {
-    if (locale.languageCode == 'zh') {
-      switch (weekday) {
-        case 1: return l10n.mon;
-        case 2: return l10n.tue;
-        case 3: return l10n.wed;
-        case 4: return l10n.thu;
-        case 5: return l10n.fri;
-        case 6: return l10n.sat;
-        case 7: return l10n.sun;
-        default: return '';
-      }
-    }
-    const englishDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return englishDays[weekday - 1];
+    return L10nUtils.formatDateWithWeekday(l10n, date);
   }
 
   @override
@@ -247,7 +229,7 @@ class _SwapCourseDialogState extends ConsumerState<SwapCourseDialog> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    final weekday = _getWeekdayName(date.weekday, _getLocale());
+    final weekday = L10nUtils.getDayLabel(l10n, date.weekday);
 
     return InkWell(
       onTap: onTap,

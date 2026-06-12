@@ -53,20 +53,30 @@ class ExportDialog extends StatelessWidget {
           onPressed: () async {
             Vibrate.light();
             Navigator.pop(context);
+            File? tempFile;
             try {
               final dir = await getTemporaryDirectory();
-              final file = File(
+              tempFile = File(
                   '${dir.path}/fl${DateTime.now().microsecondsSinceEpoch}.txt');
               final fileText = l10n.exportCopyMessage(compact);
-              await file.writeAsString(fileText);
+              await tempFile.writeAsString(fileText);
               await Share.shareXFiles(
-                [XFile(file.path)],
+                [XFile(tempFile.path)],
                 text: l10n.scheduleData,
               );
             } catch (e) {
               if (context.mounted) {
                 showAppSnackBar(context, '${l10n.shareFailed}: $e',
                     isError: true);
+              }
+            } finally {
+              // Clean up temp file after sharing
+              try {
+                if (tempFile != null && await tempFile.exists()) {
+                  await tempFile.delete();
+                }
+              } catch (_) {
+                // Ignore cleanup errors
               }
             }
           },
@@ -185,25 +195,21 @@ class _ImportFromTextDialogState extends ConsumerState<ImportFromTextDialog> {
     // Wait a frame to ensure the dialog is fully closed
     await Future.delayed(const Duration(milliseconds: 100));
 
-    // Show the import choice dialog
-    // ImportHelper now uses ConsumerStatefulWidget with its own ref,
-    // so no "ref disposed" error will occur
-    if (mounted) {
-      ImportHelper.showChoiceDialogAndImport(
-        context: context,
-        courseCount: courses.length,
-        courses: courses,
-        onOverwrite: overwriteImport,
-        onNewSchedule: (r, c, scheduleName) async {
-          await newScheduleImport(r, c, scheduleName: scheduleName);
-        },
-        onComplete: () {
-          if (context.mounted) {
-            showAppSnackBar(
-                context, l10n.importCourseCount(courses.length));
-          }
-        },
-      );
-    }
+    if (!mounted) return;
+    ImportHelper.showChoiceDialogAndImport(
+      // ignore: use_build_context_synchronously
+      context: context,
+      courseCount: courses.length,
+      courses: courses,
+      onOverwrite: overwriteImport,
+      onNewSchedule: (r, c, scheduleName) async {
+        await newScheduleImport(r, c, scheduleName: scheduleName);
+      },
+      onComplete: () {
+        if (!mounted) return;
+        showAppSnackBar(
+            context, l10n.importCourseCount(courses.length));
+      },
+    );
   }
 }

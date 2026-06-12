@@ -19,9 +19,14 @@ class DateUtils {
 
   static int currentWeekIndex(DateTime semesterStart, int totalWeeks) {
     final now = DateTime.now();
-    final diff = now.difference(semesterStart).inDays;
+    final start = DateTime(semesterStart.year, semesterStart.month, semesterStart.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = today.difference(start).inDays;
     if (diff < 0) return 1;
-    final week = (diff / 7).ceil() + 1;
+    // Use integer division (floor) to correctly map days 0-6 to week 1,
+    // days 7-13 to week 2, etc. Using .ceil() caused the last day of each
+    // week (day 6, 13, etc.) to be misclassified as the next week.
+    final week = (diff ~/ 7) + 1;
     return week.clamp(1, totalWeeks);
   }
 }
