@@ -198,11 +198,13 @@ class _AddEditCoursePageState extends ConsumerState<AddEditCoursePage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Re-attempt load when provider data arrives (e.g. stream emitted after
-    // the initial postFrameCallback).
-    ref.watch(courseListProvider);
-    if (_isEditing && !_initialized) {
-      _loadExistingCourse();
-    }
+    // the initial postFrameCallback). Using ref.listen avoids rebuilding the
+    // entire form on every course list change.
+    ref.listen(courseListProvider, (previous, next) {
+      if (_isEditing && !_initialized) {
+        _loadExistingCourse();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(

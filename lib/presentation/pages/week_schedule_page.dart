@@ -192,7 +192,8 @@ class _WeekSchedulePageState extends ConsumerState<WeekSchedulePage> {
   Widget build(BuildContext context) {
     final courseListAsync = ref.watch(courseListProvider);
     final scheduleAsync = ref.watch(currentScheduleProvider);
-    ref.watch(scheduleListProvider);
+    // 使用 ref.listen 而非 ref.watch，避免 scheduleList 变化时重建整个页面
+    ref.listen(scheduleListProvider, (_, __) {});
     final schedule = scheduleAsync.valueOrNull;
     final currentWeek = ref.watch(currentWeekProvider);
 

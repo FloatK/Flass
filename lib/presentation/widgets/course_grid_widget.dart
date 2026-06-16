@@ -47,10 +47,21 @@ class CourseGridWidget extends ConsumerWidget {
         semesterStart.add(Duration(days: (displayedWeek - 1) * 7));
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
-    final settings = ref.watch(themeSettingsProvider);
+    // 只订阅影响网格背景的字段，避免其他设置变化导致重建
+    final followThemeBackground = ref.watch(
+        themeSettingsProvider.select((s) => s.followThemeBackground));
+    final colorIndex = ref.watch(
+        themeSettingsProvider.select((s) => s.colorIndex));
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gridBgColor = settings.getGridBackgroundColor(colorScheme, isDark);
+    final gridBgColor = followThemeBackground
+        ? (isDark
+            ? HSLColor.fromColor(colorScheme.primary)
+                .withSaturation((HSLColor.fromColor(colorScheme.primary).saturation * 0.7).clamp(0.0, 1.0))
+                .withLightness(0.08)
+                .toColor()
+            : HSLColor.fromColor(colorScheme.primary).withLightness(0.95).toColor())
+        : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     return Container(
       color: gridBgColor,
@@ -150,9 +161,10 @@ class CourseGridWidget extends ConsumerWidget {
   Widget _buildGridBody(BuildContext context, WidgetRef ref) {
     final weekdays =
         displayedWeekdays.where((d) => d >= 1 && d <= 7).toList()..sort();
-    final settings = ref.watch(themeSettingsProvider);
-    final hSpacing = settings.horizontalSpacing;
-    final blockHeight = settings.blockHeight;
+    final hSpacing = ref.watch(
+        themeSettingsProvider.select((s) => s.horizontalSpacing));
+    final blockHeight = ref.watch(
+        themeSettingsProvider.select((s) => s.blockHeight));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Row(
@@ -192,9 +204,10 @@ class CourseGridWidget extends ConsumerWidget {
 
   Widget _buildDayColumn(WidgetRef ref, int dayOfWeek, {required bool isDark}) {
     final slots = _getActiveSlotsForDay(dayOfWeek);
-    final settings = ref.watch(themeSettingsProvider);
-    final blockHeight = settings.blockHeight;
-    final courseSpacing = settings.courseSpacing;
+    final blockHeight = ref.watch(
+        themeSettingsProvider.select((s) => s.blockHeight));
+    final courseSpacing = ref.watch(
+        themeSettingsProvider.select((s) => s.courseSpacing));
 
     return SizedBox(
       height: periodCount * blockHeight,
