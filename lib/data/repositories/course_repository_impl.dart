@@ -74,6 +74,15 @@ class CourseRepositoryImpl implements CourseRepository {
     }
   }
 
+  @override
+  Future<void> updateColorByName(String name, int color) async {
+    try {
+      await _db.courses.updateColorByName(name, color);
+    } catch (e) {
+      throw CourseRepositoryException('同步课程颜色失败: $e');
+    }
+  }
+
   List<Course> _mapToCourses(List<CourseWithDetails> rows) {
     return rows.map((row) {
       // 解析 metadata JSON

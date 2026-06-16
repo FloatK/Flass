@@ -33,18 +33,8 @@ class CourseList extends _$CourseList {
   Future<void> updateCourse(Course course) async {
     final repo = ref.read(courseRepositoryProvider);
     await repo.updateCourse(course);
-    // 同步更新同名课程的颜色
-    await _syncColorByName(repo, course.name, course.color);
-  }
-
-  /// 将所有同名课程的颜色同步为指定颜色。
-  Future<void> _syncColorByName(CourseRepository repo, String name, int color) async {
-    final courses = state.valueOrNull ?? [];
-    for (final c in courses) {
-      if (c.name == name && c.color != color) {
-        await repo.updateCourse(c.copyWith(color: color));
-      }
-    }
+    // 批量同步同名课程的颜色（单次 SQL UPDATE，避免 N+1）
+    await repo.updateColorByName(course.name, course.color);
   }
 
   Future<void> deleteCourse(String id) async {

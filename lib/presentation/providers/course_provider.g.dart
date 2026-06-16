@@ -23,7 +23,7 @@ final courseRepositoryProvider = Provider<CourseRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CourseRepositoryRef = ProviderRef<CourseRepository>;
-String _$courseListHash() => r'c70be3cc509df9e7224f130db6d07b92ae26b00c';
+String _$courseListHash() => r'4bf3510917534079c6a85585e7b6b776cda36a93';
 
 /// See also [CourseList].
 @ProviderFor(CourseList)

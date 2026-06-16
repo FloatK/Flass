@@ -102,18 +102,30 @@ class CourseDao {
     _notifyChange();
   }
 
-  /// 删除课表下的所有课程
+  /// 删除课表下的所有课程（批量 SQL，避免 N+1）
   Future<void> deleteByScheduleId(String scheduleId) async {
     final db = _getDatabase();
-    final ids = await db.query(
+    await db.transaction((txn) async {
+      await txn.rawDelete(
+        'DELETE FROM time_details WHERE course_id IN '
+        '(SELECT id FROM courses WHERE schedule_id = ?)',
+        [scheduleId],
+      );
+      await txn.delete('courses',
+          where: 'schedule_id = ?', whereArgs: [scheduleId]);
+    });
+    _notifyChange();
+  }
+
+  /// 批量更新同名课程的颜色
+  Future<void> updateColorByName(String name, int color) async {
+    final db = _getDatabase();
+    await db.update(
       'courses',
-      columns: ['id'],
-      where: 'schedule_id = ?',
-      whereArgs: [scheduleId],
+      {'color': color},
+      where: 'name = ? AND color != ?',
+      whereArgs: [name, color],
     );
-    for (final row in ids) {
-      await delete(row['id'] as String);
-    }
     _notifyChange();
   }
 
@@ -149,26 +161,54 @@ class CourseDao {
     return controller.stream;
   }
 
-  /// 获取所有课程及时间段
+  /// 获取所有课程及时间段（单次 JOIN 查询，避免 N+1）
   Future<List<CourseWithDetails>> _getAllWithDetails() async {
     final db = _getDatabase();
-    final courses = await db.query('courses');
-    final result = <CourseWithDetails>[];
+    final rows = await db.rawQuery('''
+      SELECT c.id, c.name, c.teacher, c.location, c.color,
+             c.schedule_id, c.metadata,
+             td.id as td_id, td.course_id,
+             td.day_of_week, td.start_period,
+             td.duration, td.weeks, td.single_or_double
+      FROM courses c
+      LEFT JOIN time_details td ON td.course_id = c.id
+      ORDER BY c.id
+    ''');
 
-    for (final courseMap in courses) {
-      final course = CourseData.fromMap(courseMap);
-      final details = await db.query(
-        'time_details',
-        where: 'course_id = ?',
-        whereArgs: [course.id],
+    // Group flat rows by course
+    final courseMap = <String, CourseWithDetails>{};
+    for (final row in rows) {
+      final courseId = row['id'] as String;
+      final entry = courseMap.putIfAbsent(
+        courseId,
+        () => CourseWithDetails(
+          course: CourseData(
+            id: courseId,
+            name: row['name'] as String,
+            teacher: row['teacher'] as String,
+            location: row['location'] as String?,
+            color: row['color'] as int,
+            scheduleId: row['schedule_id'] as String?,
+            metadata: row['metadata'] as String? ?? '{}',
+          ),
+        ),
       );
-      result.add(CourseWithDetails(
-        course: course,
-        details: details.map((m) => TimeDetailData.fromMap(m)).toList(),
-      ));
+
+      // time_details may be NULL for courses with no time details
+      if (row['td_id'] != null) {
+        entry.details.add(TimeDetailData(
+          id: row['td_id'] as int,
+          courseId: row['course_id'] as String,
+          dayOfWeek: row['day_of_week'] as int,
+          startPeriod: row['start_period'] as int,
+          duration: row['duration'] as int,
+          weeks: row['weeks'] as String,
+          singleOrDouble: row['single_or_double'] as String,
+        ));
+      }
     }
 
-    return result;
+    return courseMap.values.toList();
   }
 
   /// 检查是否有课程数据
