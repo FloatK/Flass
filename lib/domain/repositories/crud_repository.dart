@@ -55,12 +55,9 @@ abstract class CrudRepository<T> {
 
   /// 删除所有实体
   ///
-  /// 默认实现为逐个删除，子类可覆盖以实现批量操作。
-  Future<void> deleteAll() async {
-    final entities = await findAll();
-    for (final _ in entities) {
-      // 子类需要实现具体的删除逻辑
-    }
+  /// 子类必须实现具体的删除逻辑。
+  Future<void> deleteAll() {
+    throw UnimplementedError('deleteAll must be implemented by subclass');
   }
 
   /// 获取实体数量

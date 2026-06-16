@@ -9,7 +9,7 @@ import '../../core/utils/edu_system_webview_controller.dart';
 import '../../core/utils/edu_url_store.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/vibrate.dart';
-import '../../data/datasources/edu_parser.dart';
+import '../../domain/entities/edu_parser_entities.dart';
 import '../../l10n/app_localizations.dart';
 import '../utils/import_helper.dart';
 import '../widgets/edu_system_selection_dialog.dart';

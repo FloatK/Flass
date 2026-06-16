@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../data/datasources/database.dart';
+import '../../domain/entities/database_entities.dart';
 
 part 'semester_provider.g.dart';
 

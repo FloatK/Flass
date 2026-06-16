@@ -1,4 +1,4 @@
-import '../../data/models/schedule.dart';
+import '../entities/schedule_entities.dart';
 
 abstract class ScheduleRepository {
   Future<List<Schedule>> getAllSchedules();

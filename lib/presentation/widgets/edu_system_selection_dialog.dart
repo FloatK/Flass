@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/datasources/edu_parser.dart';
+import '../../domain/entities/edu_parser_entities.dart';
 import '../../l10n/app_localizations.dart';
 
 /// 教务系统选择对话框。
